@@ -2,50 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   贪婪猎人 (Greedy Hunter) UI 设计系统
+   暗黑模式金融工具风格 - v1.0
+   ============================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* ========== 背景色系统 (Slate 900/800) ========== */
+    --background: 222 47% 11%;         /* slate-900: #0f172a - 全局背景 */
+    --foreground: 210 20% 98%;         /* white: #ffffff - 主文字 */
+    
+    /* 卡片/模块背景 - Slate 800 半透明玻璃效果 */
+    --card: 215 25% 15%;               /* slate-800: #1e293b */
+    --card-foreground: 214 32% 91%;    /* slate-300: #cbd5e1 */
+    
+    /* Popover/Dropdown */
+    --popover: 215 25% 15%;            /* slate-800 */
+    --popover-foreground: 214 32% 91%; /* slate-300 */
+    
+    /* ========== 功能色系统 ========== */
+    /* Primary - Emerald 500 (成功/买入/贪婪时刻) */
+    --primary: 160 84% 39%;            /* emerald-500: #10b981 */
+    --primary-foreground: 210 20% 98%; /* white */
+    
+    /* Destructive - Red 400 (危险/卖出/太贵了) */
+    --destructive: 0 91% 71%;          /* red-400: #f87171 */
+    --destructive-foreground: 210 20% 98%;
+    
+    /* Accent - Blue 400 (科技感/信息/链接) */
+    --accent: 213 97% 68%;             /* blue-400: #60a5fa */
+    --accent-foreground: 222 47% 11%;  /* slate-900 */
+    
+    /* ========== 辅助色系统 ========== */
+    /* Secondary - Slate 700 (次级按钮/标签) */
+    --secondary: 215 20% 25%;          /* slate-700 */
+    --secondary-foreground: 214 32% 91%;
+    
+    /* Muted - 用于辅助文本和提示 */
+    --muted: 215 16% 47%;              /* slate-500 */
+    --muted-foreground: 215 14% 58%;   /* slate-400 */
+    
+    /* ========== 边框和输入框 ========== */
+    /* Border - Slate 700 (极细边框线) */
+    --border: 215 20% 35%;             /* slate-700: #334155 */
+    
+    /* Input - Slate 900 (深色输入框背景) */
+    --input: 222 47% 11%;              /* slate-900 */
+    
+    /* Ring - Emerald 500 (聚焦光晕) */
+    --ring: 160 84% 39%;               /* emerald-500 */
+    
+    /* ========== 圆角系统 ========== */
+    --radius: 0.75rem;  /* 12px - rounded-xl (默认卡片圆角) */
   }
 }
 
@@ -53,26 +62,253 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    @apply scroll-smooth;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-slate-900 text-white font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* 更好的字体渲染 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* 数字和代码使用等宽字体 */
+  .font-mono {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  }
+  
+  /* 标题通常使用 Inter */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-bold tracking-tight;
   }
 }
 
-/* 自定义滚动条样式 */
+/* ============================================
+   自定义滚动条 - 暗黑模式专业风格
+   ============================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary;
+  @apply bg-slate-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full;
+  @apply bg-slate-600 rounded;
+  transition: background-color 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+  @apply bg-slate-500;
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(71 85 105) rgb(15 23 42); /* slate-600 slate-900 */
+}
+
+/* ============================================
+   组件库 - Components Layer
+   ============================================ */
+@layer components {
+  /* ========== 玻璃面板卡片 ========== */
+  .card-glass {
+    @apply bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 
+           hover:bg-slate-800 hover:border-slate-600 transition-all duration-300;
+  }
+  
+  .card-glass-solid {
+    @apply bg-slate-800 rounded-xl border border-slate-700 
+           hover:bg-slate-800/90 transition-colors;
+  }
+  
+  /* ========== 数据卡片 (用于展示核心数值) ========== */
+  .card-data {
+    @apply bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6
+           hover:bg-slate-800 transition-all;
+  }
+  
+  .card-data-header {
+    @apply text-xs uppercase tracking-wider text-slate-400 font-medium
+           flex items-center gap-2 mb-4;
+  }
+  
+  .card-data-value {
+    @apply text-3xl font-bold text-white font-mono mb-1;
+  }
+  
+  /* ========== 状态标签 (Tags/Badges) ========== */
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+  
+  .badge-danger {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+  
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+  
+  .badge-neutral {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-slate-700 text-slate-300 border border-slate-600;
+  }
+  
+  .badge-accent {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-purple-500/10 text-purple-300 border border-purple-500/20;
+  }
+  
+  /* ========== 输入框 ========== */
+  .input-dark {
+    @apply w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg
+           text-white placeholder:text-slate-500
+           focus:ring-2 focus:ring-emerald-500 focus:border-transparent
+           transition-all;
+  }
+  
+  .input-dark-with-icon {
+    @apply pl-10 pr-4;
+  }
+  
+  /* ========== 按钮系统 ========== */
+  .btn-primary {
+    @apply bg-emerald-600 hover:bg-emerald-500 text-white font-medium
+           py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-all active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-300
+           py-3 px-6 rounded-lg border border-slate-600
+           hover:border-slate-500 transition-all active:scale-95;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-500 text-white font-medium
+           py-3 px-6 rounded-lg shadow-lg hover:shadow-red-500/20
+           transition-all active:scale-95;
+  }
+  
+  .btn-ghost {
+    @apply text-slate-400 hover:text-white hover:bg-slate-800
+           py-2 px-4 rounded-lg transition-all;
+  }
+  
+  /* ========== 表格样式 ========== */
+  .table-header {
+    @apply text-xs uppercase tracking-wider text-slate-400 font-medium
+           pb-3 border-b border-slate-700;
+  }
+  
+  .table-row {
+    @apply border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors;
+  }
+  
+  .table-cell {
+    @apply py-4 px-6 text-sm text-slate-300;
+  }
+  
+  /* ========== 光晕效果 (Glow Effects) ========== */
+  .glow-wrapper {
+    @apply relative;
+  }
+  
+  /* 成功光晕 (绿色) */
+  .glow-success::before {
+    content: '';
+    @apply absolute -inset-4 rounded-full blur-3xl opacity-10 bg-emerald-500;
+    z-index: -1;
+  }
+  
+  /* 危险光晕 (红色) */
+  .glow-danger::before {
+    content: '';
+    @apply absolute -inset-4 rounded-full blur-3xl opacity-10 bg-red-400;
+    z-index: -1;
+  }
+  
+  /* 科技光晕 (蓝色) */
+  .glow-info::before {
+    content: '';
+    @apply absolute -inset-4 rounded-full blur-3xl opacity-10 bg-blue-400;
+    z-index: -1;
+  }
+  
+  /* ========== 边框发光效果 ========== */
+  .border-glow-emerald {
+    @apply border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)];
+  }
+  
+  .border-glow-red {
+    @apply border-red-500/50 shadow-[0_0_30px_rgba(248,113,113,0.1)];
+  }
+  
+  /* ========== Section 标题样式 ========== */
+  .section-title {
+    @apply text-xs uppercase tracking-wider text-slate-400 font-medium
+           flex items-center gap-2 mb-4;
+  }
+  
+  .section-title-icon {
+    @apply w-4 h-4;
+  }
+}
+
+/* ============================================
+   工具类 - Utilities Layer
+   ============================================ */
+@layer utilities {
+  /* 快速应用光晕按钮效果 */
+  .btn-glow-emerald {
+    @apply shadow-lg hover:shadow-emerald-500/20 transition-shadow;
+  }
+  
+  .btn-glow-red {
+    @apply shadow-lg hover:shadow-red-500/20 transition-shadow;
+  }
+  
+  .btn-glow-blue {
+    @apply shadow-lg hover:shadow-blue-500/20 transition-shadow;
+  }
+  
+  /* 脉冲动画 - 用于加载或强调 */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  /* 文本渐变效果 */
+  .text-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
+  }
+  
+  /* 背景渐变条 (用于进度条) */
+  .bg-gradient-bar {
+    @apply bg-gradient-to-r from-emerald-500 to-blue-500;
+  }
 }
 

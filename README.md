@@ -38,8 +38,18 @@
 - **React 18 + TypeScript** - 现代化前端框架
 - **Vite** - 极速构建工具
 - **shadcn/ui + TailwindCSS** - 精美 UI 组件
+- **Lucide React** - 线性图标库
 - **TanStack Query** - 数据状态管理
 - **Zustand** - 全局状态管理
+
+### 🎨 UI 设计系统
+- **暗黑模式** - Slate 900/800 专业金融风格
+- **玻璃面板** - 半透明卡片 + 背景模糊
+- **光晕效果** - 绿色（成功）/ 红色（危险）环境光
+- **等宽字体** - 数字和代码使用 Mono 字体确保对齐
+- **科技感配色** - Emerald (买入) / Red (卖出) / Blue (信息)
+
+> 📖 详见 [UI_DESIGN_SYSTEM.md](./UI_DESIGN_SYSTEM.md) 完整设计规范
 
 ### DevOps
 - **Docker + Docker Compose** - 容器化部署
@@ -136,10 +146,13 @@ tllr/
 ├── frontend/             # React 前端
 │   ├── src/
 │   │   ├── components/  # UI 组件
+│   │   │   └── UIShowcase.tsx  # 🎨 设计系统展示
 │   │   ├── pages/       # 页面
 │   │   ├── hooks/       # 自定义 Hooks
 │   │   ├── lib/         # 工具库
 │   │   ├── stores/      # 状态管理
+│   │   ├── styles/      # 全局样式
+│   │   │   └── globals.css  # 🎨 设计系统定义
 │   │   └── types/       # TypeScript 类型
 │   └── package.json
 │
@@ -151,6 +164,9 @@ tllr/
 │   ├── API.md           # API 文档
 │   └── DATABASE.md      # 数据库设计
 │
+├── UI_DESIGN_SYSTEM.md   # 🎨 UI 设计系统完整规范
+├── SUPABASE_SETUP.md     # Supabase 配置指南
+├── TROUBLESHOOTING.md    # 故障排除指南
 ├── docker-compose.yml    # Docker 编排
 └── README.md
 ```
@@ -230,6 +246,9 @@ npm run dev
 
 ### 技术文档
 
+- [🎨 UI 设计系统](UI_DESIGN_SYSTEM.md) - **必读** 前端开发规范
+- [⚙️ Supabase 配置](SUPABASE_SETUP.md) - 数据库和认证设置
+- [🔧 故障排除](TROUBLESHOOTING.md) - 常见问题解决
 - [部署指南](docs/SETUP.md)
 - [API 文档](docs/API.md)
 - [数据库设计](docs/DATABASE.md)
