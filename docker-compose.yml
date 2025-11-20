@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 后端 FastAPI 服务
+  backend:
+    build: ./backend
+    container_name: greedy_hunter_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ENVIRONMENT=development
+      - DEBUG=True
+      - BACKEND_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - greedy_hunter_network
+
+  # 前端 React 服务（开发环境）
+  frontend:
+    build: ./frontend
+    container_name: greedy_hunter_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    command: npm run dev -- --host
+    networks:
+      - greedy_hunter_network
+
+networks:
+  greedy_hunter_network:
+    driver: bridge
+
