@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react'
-import { Search, TrendingUp, AlertTriangle, Target, BarChart3, HelpCircle } from 'lucide-react'
+import { Search, AlertTriangle, Target, BarChart3 } from 'lucide-react'
 import axios from 'axios'
 
 // 定义类型
@@ -16,13 +16,7 @@ interface UserConfirmations {
   moat: boolean
 }
 
-interface AnalysisRequestV2 {
-  symbol: string
-  intrinsic_value: number
-  user_confirmations: UserConfirmations
-}
-
-export default function CalculatorPageV2() {
+export default function CalculatorPage() {
   const [symbol, setSymbol] = useState('')
   const [intrinsicValue, setIntrinsicValue] = useState<number>(100)
   const [confirmations, setConfirmations] = useState<UserConfirmations>({
@@ -69,7 +63,7 @@ export default function CalculatorPageV2() {
           <BarChart3 className="w-5 h-5 text-blue-400" />
           <h2 className="text-xl font-bold text-white">建仓计算器</h2>
           <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">
-            8分制
+            别人贪婪我恐惧，别人恐惧我贪婪
           </span>
         </div>
       </div>
@@ -163,6 +157,15 @@ export default function CalculatorPageV2() {
         <div className="space-y-4">
           {/* 1. 公司概览 - 顶部 */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                公司概览
+              </h3>
+              <span className={`text-xs px-2 py-1 rounded ${getTierColor(result.quality_assessment.tier)} bg-opacity-10`}>
+                {result.quality_assessment.tier}级 • {result.quality_assessment.total_score}/8分
+              </span>
+            </div>
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white mb-1">{result.stock_info.company_name || result.symbol}</h2>
@@ -215,6 +218,21 @@ export default function CalculatorPageV2() {
               ? 'bg-emerald-500/10 border-emerald-500/50' 
               : 'bg-red-500/10 border-red-500/50'
           }`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className={`w-1.5 h-6 rounded-full ${
+                  result.pricing.price_gap_percent <= 0 ? 'bg-emerald-500' : 'bg-red-500'
+                }`}></div>
+                分析报告
+              </h3>
+              <span className={`text-xs px-2 py-1 rounded ${
+                result.pricing.price_gap_percent <= 0 
+                  ? 'bg-emerald-500/20 text-emerald-400' 
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {result.pricing.price_gap_percent <= 0 ? '可建仓' : '需等待'}
+              </span>
+            </div>
             <div className="flex items-start space-x-3">
               {result.pricing.price_gap_percent <= 0 ? (
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
@@ -269,16 +287,13 @@ export default function CalculatorPageV2() {
           {/* 3. 8点质量评分详情 */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-white flex items-center">
-                <BarChart3 className="w-4 h-4 mr-1.5 text-emerald-400" />
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
                 8点质量评分
               </h3>
-              <div className="text-xs text-slate-400">
-                总分 {result.quality_assessment.total_score}/8 • 
-                <span className={`ml-1 ${getTierColor(result.quality_assessment.tier)}`}>
-                  {result.quality_assessment.tier}级
-                </span>
-              </div>
+              <span className={`text-xs px-2 py-1 rounded ${getTierColor(result.quality_assessment.tier)} bg-opacity-10`}>
+                {result.quality_assessment.tier}级 • {result.quality_assessment.total_score}/8分
+              </span>
             </div>
 
             {/* 横向3列布局 */}
@@ -371,10 +386,15 @@ export default function CalculatorPageV2() {
 
           {/* 4. 定价分析 */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
-            <h3 className="text-sm font-bold text-white mb-3 flex items-center">
-              <TrendingUp className="w-4 h-4 mr-1.5 text-blue-400" />
-              性格波动分析（标准成长）
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+                定价分析
+              </h3>
+              <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
+                中波动（标准成长）
+              </span>
+            </div>
             <div className="flex items-center space-x-3 text-sm">
               <div className="flex items-baseline space-x-1">
                 <span className="text-slate-400">Price =</span>
@@ -403,10 +423,8 @@ export default function CalculatorPageV2() {
           {/* 5. 金字塔网格策略 - 表格样式 */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-white flex items-center">
-                <span className="w-5 h-5 bg-emerald-500/20 rounded flex items-center justify-center mr-2">
-                  📊
-                </span>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
                 金字塔网格策略
               </h3>
               <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
