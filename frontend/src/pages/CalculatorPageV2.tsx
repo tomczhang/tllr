@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react'
-import { Search, TrendingUp, AlertTriangle, Target, BarChart3, CheckCircle2, XCircle, HelpCircle } from 'lucide-react'
+import { Search, TrendingUp, AlertTriangle, Target, BarChart3, HelpCircle } from 'lucide-react'
 import axios from 'axios'
 
 // 定义类型
@@ -26,12 +26,12 @@ export default function CalculatorPageV2() {
   const [symbol, setSymbol] = useState('')
   const [intrinsicValue, setIntrinsicValue] = useState<number>(100)
   const [confirmations, setConfirmations] = useState<UserConfirmations>({
-    gross_margin: null,
-    roe: null,
-    financial_safety: null,
-    shareholder_returns: null,
-    industry_dominance: false,
-    moat: false
+    gross_margin: null,  // 自动判断
+    roe: null,           // 自动判断
+    financial_safety: null,  // 自动判断
+    shareholder_returns: null,  // 自动判断
+    industry_dominance: false,  // 必填
+    moat: false  // 必填
   })
   
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -63,203 +63,424 @@ export default function CalculatorPageV2() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center space-x-3 mb-8">
-        <BarChart3 className="w-6 h-6 text-blue-400" />
-        <h2 className="text-2xl font-bold text-white">建仓计算器 V2</h2>
-        <span className="px-2 py-1 text-xs bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/30">
-          8分制评分
-        </span>
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <BarChart3 className="w-5 h-5 text-blue-400" />
+          <h2 className="text-xl font-bold text-white">建仓计算器</h2>
+          <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">
+            8分制
+          </span>
+        </div>
       </div>
 
-      {/* 输入表单 */}
-      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6 space-y-6">
-        <h3 className="text-lg font-semibold text-white mb-4">1. 基础信息</h3>
-        
-        {/* 股票代码 */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">股票代码</label>
-          <div className="relative">
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              placeholder="如: AAPL, 600519.SS"
-              className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+      {/* 输入表单 - 分组布局 */}
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+        <div className="grid grid-cols-2 gap-4">
+          {/* 左侧：基本信息 */}
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-slate-300 mb-2">股票代码</div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">股票代码</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  placeholder="如: 1810.HK, AAPL"
+                  className="w-full pl-8 pr-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded text-white placeholder:text-slate-500 focus:ring-1 focus:ring-emerald-500"
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">内在价值估算</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-mono">$</span>
+                <input
+                  type="number"
+                  value={intrinsicValue}
+                  onChange={(e) => setIntrinsicValue(Number(e.target.value))}
+                  placeholder="50"
+                  className="w-full pl-7 pr-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded text-white placeholder:text-slate-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 右侧：品质检查 */}
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-slate-300 mb-2">质量检查（用户确认）</div>
+            <label className="flex items-center space-x-2 p-3 bg-slate-900/50 rounded border border-slate-700 cursor-pointer hover:border-emerald-500/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={confirmations.industry_dominance}
+                onChange={(e) => setConfirmations({...confirmations, industry_dominance: e.target.checked})}
+                className="w-4 h-4 rounded border-slate-600 text-emerald-600 focus:ring-1 focus:ring-emerald-500"
+              />
+              <div className="flex-1">
+                <div className="text-sm text-white font-medium">行业地位</div>
+                <div className="text-xs text-slate-400">龙头或双寡头</div>
+              </div>
+            </label>
+            <label className="flex items-center space-x-2 p-3 bg-slate-900/50 rounded border border-slate-700 cursor-pointer hover:border-emerald-500/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={confirmations.moat}
+                onChange={(e) => setConfirmations({...confirmations, moat: e.target.checked})}
+                className="w-4 h-4 rounded border-slate-600 text-emerald-600 focus:ring-1 focus:ring-emerald-500"
+              />
+              <div className="flex-1">
+                <div className="text-sm text-white font-medium">护城河</div>
+                <div className="text-xs text-slate-400">转换成本高</div>
+              </div>
+            </label>
           </div>
         </div>
 
-        {/* 内在估值 */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            内在估值价格 
-            <span className="text-slate-500 ml-2">（根据您的认知填写）</span>
-          </label>
-          <input
-            type="number"
-            value={intrinsicValue}
-            onChange={(e) => setIntrinsicValue(Number(e.target.value))}
-            placeholder="您认为的合理价格"
-            className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono"
-          />
-        </div>
-
-        <div className="border-t border-slate-700 pt-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            2. 半自动化指标 
-            <span className="text-sm text-slate-400 ml-2 font-normal">（可选，留空将使用系统建议）</span>
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <CheckboxField
-              label="毛利率 >40%"
-              checked={confirmations.gross_margin}
-              onChange={(val) => setConfirmations({...confirmations, gross_margin: val})}
-            />
-            <CheckboxField
-              label="ROE >15%"
-              checked={confirmations.roe}
-              onChange={(val) => setConfirmations({...confirmations, roe: val})}
-            />
-            <CheckboxField
-              label="财务安全（现金>负债）"
-              checked={confirmations.financial_safety}
-              onChange={(val) => setConfirmations({...confirmations, financial_safety: val})}
-            />
-            <CheckboxField
-              label="股东回报（有分红/回购）"
-              checked={confirmations.shareholder_returns}
-              onChange={(val) => setConfirmations({...confirmations, shareholder_returns: val})}
-            />
-          </div>
-        </div>
-
-        <div className="border-t border-slate-700 pt-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            3. 完全人工指标 
-            <span className="text-sm text-red-400 ml-2 font-normal">（必填）</span>
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <BooleanField
-              label="行业地位（是否老大/双寡头）"
-              checked={confirmations.industry_dominance}
-              onChange={(val) => setConfirmations({...confirmations, industry_dominance: val})}
-            />
-            <BooleanField
-              label="护城河（是否有高转换成本）"
-              checked={confirmations.moat}
-              onChange={(val) => setConfirmations({...confirmations, moat: val})}
-            />
-          </div>
-        </div>
-
+        {/* 分析按钮 */}
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-emerald-600 text-white font-medium rounded-lg shadow-lg hover:shadow-glow-emerald disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-lg"
+          className="w-full mt-4 px-4 py-3 bg-emerald-600 text-white text-sm font-medium rounded shadow-lg hover:shadow-glow-emerald disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
         >
-          <span>{isAnalyzing ? '分析中...' : '开始分析'}</span>
+          {isAnalyzing ? '分析中...' : '开始分析'}
         </button>
       </div>
 
       {/* 错误信息 */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
-          <p className="text-red-400">{error}</p>
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
+          <p className="text-red-400 text-sm flex items-center">
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            {error}
+          </p>
         </div>
       )}
 
       {/* 分析结果 */}
       {result && (
-        <div className="space-y-6">
-          {/* 质量评估 */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2 text-emerald-400" />
-              质量评估
-            </h3>
-            
-            <div className="flex items-center space-x-4 mb-6">
-              <div className={`text-4xl font-bold ${getTierColor(result.quality_assessment.tier)}`}>
-                {result.quality_assessment.tier}级
-              </div>
+        <div className="space-y-4">
+          {/* 1. 公司概览 - 顶部 */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <div className="flex items-start justify-between">
               <div>
-                <div className="text-lg text-slate-300">{result.quality_assessment.tier_description}</div>
-                <div className="text-sm text-slate-500">
-                  总分: {result.quality_assessment.total_score}/8 | 品质系数: {result.quality_assessment.quality_coefficient}
+                <h2 className="text-xl font-bold text-white mb-1">{result.stock_info.company_name || result.symbol}</h2>
+                <div className="flex items-center space-x-4 text-sm text-slate-400">
+                  <span>{result.symbol}</span>
+                  {result.stock_info.sector && <span>• {result.stock_info.sector}</span>}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-400 mb-1">当前价格</div>
+                <div className="text-3xl font-mono font-bold text-white">
+                  ${result.current_price.toFixed(2)}
                 </div>
               </div>
             </div>
 
-            {/* 完全自动化指标 */}
-            <MetricsSection title="完全自动化（2项）" metrics={result.quality_assessment.hard_metrics} />
-            
-            {/* 半自动化指标 */}
-            <MetricsSection title="半自动化（4项）" metrics={result.quality_assessment.assisted_metrics} assisted />
-            
-            {/* 完全人工指标 */}
-            <MetricsSection title="完全人工（2项）" metrics={result.quality_assessment.soft_metrics} soft />
-          </div>
-
-          {/* 定价分析 */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">定价分析</h3>
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <PriceCard label="内在估值" value={result.pricing.intrinsic_value} />
-              <PriceCard label="安全建仓价" value={result.pricing.safe_buy_price} highlight />
-              <PriceCard label="当前价格" value={result.pricing.current_price} current />
-            </div>
-            <div className={`p-4 rounded-lg ${result.pricing.price_gap_percent <= 0 ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-              <p className={result.pricing.price_gap_percent <= 0 ? 'text-emerald-300' : 'text-red-300'}>
-                {result.pricing.verdict}
-              </p>
-            </div>
-          </div>
-
-          {/* 技术分析 */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">技术分析</h3>
-            <div className="grid grid-cols-3 gap-4">
+            {/* 关键指标横向展示 */}
+            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-700">
               <div>
-                <div className="text-sm text-slate-400">MA50</div>
-                <div className="text-xl font-mono text-white">${result.technical_analysis.ma50.toFixed(2)}</div>
+                <div className="text-xs text-slate-400 mb-1">总市值</div>
+                <div className="text-lg font-mono font-bold text-white">
+                  {result.stock_info.market_cap 
+                    ? `$${(result.stock_info.market_cap / 1e9).toFixed(1)}B`
+                    : '无数据'}
+                </div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">MA200</div>
-                <div className="text-xl font-mono text-white">${result.technical_analysis.ma200.toFixed(2)}</div>
+                <div className="text-xs text-slate-400 mb-1">10年最大回撤</div>
+                <div className="text-lg font-mono font-bold text-red-400">
+                  {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
+                </div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">交易方式</div>
-                <div className="text-lg text-white">{result.technical_analysis.trading_side}</div>
+                <div className="text-xs text-slate-400 mb-1">总评分</div>
+                <div className="flex items-baseline space-x-2">
+                  <span className={`text-2xl font-bold ${getTierColor(result.quality_assessment.tier)}`}>
+                    {result.quality_assessment.tier}
+                  </span>
+                  <span className="text-sm text-slate-400">
+                    {result.quality_assessment.total_score}/8
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="mt-4 p-3 bg-slate-900/50 rounded-lg">
-              <p className="text-slate-300 text-sm">{result.technical_analysis.max_drawdown_warning}</p>
+          </div>
+
+          {/* 2. 分析报告 - 明确建议 */}
+          <div className={`rounded-lg border-2 p-4 ${
+            result.pricing.price_gap_percent <= 0 
+              ? 'bg-emerald-500/10 border-emerald-500/50' 
+              : 'bg-red-500/10 border-red-500/50'
+          }`}>
+            <div className="flex items-start space-x-3">
+              {result.pricing.price_gap_percent <= 0 ? (
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <Target className="w-6 h-6 text-emerald-400" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="text-xs text-slate-400 mb-1">分析报告</div>
+                <div className={`text-2xl font-bold mb-2 ${
+                  result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'
+                }`}>
+                  {result.pricing.price_gap_percent <= 0 ? '可以建仓' : '太贵了'}
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-baseline space-x-2">
+                    <span className={result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      当前溢价: {result.pricing.price_gap_percent > 0 ? '+' : ''}{result.pricing.price_gap_percent.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline space-x-2 text-slate-300">
+                    <span className="text-slate-500">需下跌</span>
+                    <span className={result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      {result.pricing.price_gap_percent > 0 
+                        ? `${((result.current_price - result.pricing.safe_buy_price) / result.current_price * 100).toFixed(1)}%`
+                        : '已达标'}
+                    </span>
+                    <span className="text-slate-500">
+                      (${(result.current_price - result.pricing.safe_buy_price).toFixed(2)})
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-400 mb-1">安全建仓价</div>
+                <div className="text-3xl font-mono font-bold text-emerald-400">
+                  ${result.pricing.safe_buy_price.toFixed(2)}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-700/50">
+              <div className="text-xs text-slate-400 leading-relaxed">
+                💡 溢价 {result.pricing.price_gap_percent.toFixed(1)}%。
+                安全价 = 内在估值 {result.pricing.intrinsic_value} × 品质系数 {result.pricing.quality_coefficient} × 市场折扣 {result.pricing.market_discount}。
+              </div>
             </div>
           </div>
 
-          {/* 金字塔策略 */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">金字塔网格策略</h3>
-            <div className="space-y-2">
-              {result.pyramid_strategy.map((level: any, idx: number) => (
-                <PyramidLevel key={idx} level={level} />
-              ))}
+          {/* 3. 8点质量评分详情 */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-white flex items-center">
+                <BarChart3 className="w-4 h-4 mr-1.5 text-emerald-400" />
+                8点质量评分
+              </h3>
+              <div className="text-xs text-slate-400">
+                总分 {result.quality_assessment.total_score}/8 • 
+                <span className={`ml-1 ${getTierColor(result.quality_assessment.tier)}`}>
+                  {result.quality_assessment.tier}级
+                </span>
+              </div>
+            </div>
+
+            {/* 横向3列布局 */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* 左列：完全自动化 */}
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center">
+                  完全自动化 (2项)
+                  <span className="ml-1.5 text-xs bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">自动</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {result.quality_assessment.hard_metrics.map((m: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-white truncate">{m.name}</div>
+                        <div className="text-xs text-slate-500 truncate">{m.value_display}</div>
+                      </div>
+                      <div className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {m.points}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 中列：半自动化 */}
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center">
+                  半自动化 (4项)
+                  <span className="ml-1.5 text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">AI判断</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {result.quality_assessment.assisted_metrics.map((m: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-white truncate">{m.name}</div>
+                        <div className="text-xs text-slate-500 truncate">{m.value_display}</div>
+                      </div>
+                      <div className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {m.points}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 右列：完全人工 + 技术分析 */}
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center">
+                  完全人工 (2项)
+                  <span className="ml-1.5 text-xs bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">用户</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {result.quality_assessment.soft_metrics.map((m: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-white truncate">{m.name}</div>
+                        <div className="text-xs text-slate-500 truncate">{m.description}</div>
+                      </div>
+                      <div className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {m.points}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 技术分析嵌入 */}
+                <div className="mt-3 p-2 bg-slate-900/30 rounded border border-slate-700">
+                  <div className="text-xs text-slate-400 mb-1.5">技术形态</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <div>
+                      <span className="text-slate-500">MA50:</span>
+                      <span className="text-white ml-1 font-mono">${result.technical_analysis.ma50.toFixed(0)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">MA200:</span>
+                      <span className="text-white ml-1 font-mono">${result.technical_analysis.ma200.toFixed(0)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 text-xs">
+                    <span className="text-blue-400">{result.technical_analysis.trading_side}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    MDD: {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 建议和风险 */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-3">💡 投资建议</h3>
-              <p className="text-slate-300 whitespace-pre-line text-sm">{result.recommendation}</p>
+          {/* 4. 定价分析 */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center">
+              <TrendingUp className="w-4 h-4 mr-1.5 text-blue-400" />
+              性格波动分析（标准成长）
+            </h3>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="flex items-baseline space-x-1">
+                <span className="text-slate-400">Price =</span>
+                <span className="font-mono text-blue-400">{result.pricing.intrinsic_value}</span>
+              </div>
+              <span className="text-slate-600">×</span>
+              <div className="flex items-baseline space-x-1">
+                <span className="font-mono text-emerald-400">{result.pricing.quality_coefficient}</span>
+                <span className="text-xs text-slate-500">(Mkt)</span>
+              </div>
+              <span className="text-slate-600">×</span>
+              <div className="flex items-baseline space-x-1">
+                <span className="font-mono text-purple-400">{result.pricing.market_discount}</span>
+                <span className="text-xs text-slate-500">(Qual)</span>
+              </div>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-3">⚠️ 风险警示</h3>
-              <p className="text-slate-300 whitespace-pre-line text-sm">{result.risk_warning}</p>
+            <div className="mt-2 text-xs text-slate-400">
+              {result.market_analysis.is_hk_s_tier && (
+                <span className="text-emerald-400">港股S级享受流动性豁免，市场折扣上调至0.85。</span>
+              )}
+              中波动（标准成长）: 10年最大回撤 {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%。
+              {result.technical_analysis.trading_side}。
+            </div>
+          </div>
+
+          {/* 5. 金字塔网格策略 - 表格样式 */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-white flex items-center">
+                <span className="w-5 h-5 bg-emerald-500/20 rounded flex items-center justify-center mr-2">
+                  📊
+                </span>
+                金字塔网格策略
+              </h3>
+              <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
+                中波动（标准成长）
+              </span>
+            </div>
+
+            {/* 表格 */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="text-left text-xs font-medium text-slate-400 pb-2">网格价格</th>
+                    <th className="text-left text-xs font-medium text-slate-400 pb-2">跌幅（VS上级）</th>
+                    <th className="text-left text-xs font-medium text-slate-400 pb-2">买入份数</th>
+                    <th className="text-left text-xs font-medium text-slate-400 pb-2">操作建议</th>
+                    <th className="text-right text-xs font-medium text-slate-400 pb-2">累计仓位</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.pyramid_strategy.map((level: any, idx: number) => {
+                    const isTriggered = level.description.includes('已触发')
+                    const prevPrice = idx === 0 ? result.pricing.safe_buy_price : result.pyramid_strategy[idx - 1].price
+                    const dropPercent = ((prevPrice - level.price) / prevPrice * 100).toFixed(0)
+                    
+                    // 计算累计仓位
+                    let cumulativePosition = 0
+                    for (let i = 0; i <= idx; i++) {
+                      cumulativePosition += result.pyramid_strategy[i].percentage * 100
+                    }
+                    
+                    return (
+                      <tr key={idx} className={`border-b border-slate-700/50 ${
+                        isTriggered ? 'bg-emerald-500/5' : ''
+                      }`}>
+                        <td className="py-2 font-mono text-white">
+                          ${level.price.toFixed(2)}
+                        </td>
+                        <td className="py-2">
+                          <span className={idx === 0 ? 'text-slate-500' : 'text-red-400'}>
+                            {idx === 0 ? '-' : `-${dropPercent}%`}
+                          </span>
+                        </td>
+                        <td className="py-2 font-mono text-white">
+                          {((level.percentage * 10) / 0.1).toFixed(1)}
+                        </td>
+                        <td className="py-2">
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            isTriggered 
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-slate-700 text-slate-400'
+                          }`}>
+                            {idx === 0 ? '首次建仓' : `加仓`}
+                          </span>
+                        </td>
+                        <td className="py-2 text-right font-mono text-white">
+                          {cumulativePosition.toFixed(0)}%
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="border-t-2 border-slate-600">
+                    <td className="py-2 text-slate-400">总计</td>
+                    <td></td>
+                    <td className="py-2 font-mono font-bold text-emerald-400">10 Units</td>
+                    <td className="py-2 text-slate-400">总仓位</td>
+                    <td className="py-2 text-right font-mono font-bold text-emerald-400">100%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-3 text-xs text-slate-500 leading-relaxed">
+              * 金字塔网格逻辑：网格价格 = 上级价格 × (1 - 跌幅率)。单位仓量: 10份。
             </div>
           </div>
         </div>
@@ -270,105 +491,6 @@ export default function CalculatorPageV2() {
 
 // === 辅助组件 ===
 
-function CheckboxField({ label, checked, onChange }: { label: string, checked: boolean | null, onChange: (val: boolean | null) => void }) {
-  return (
-    <div className="flex items-center space-x-3 p-3 bg-slate-900/30 rounded-lg border border-slate-700">
-      <div className="flex space-x-2">
-        <button
-          onClick={() => onChange(true)}
-          className={`p-2 rounded ${checked === true ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onChange(false)}
-          className={`p-2 rounded ${checked === false ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-        >
-          <XCircle className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onChange(null)}
-          className={`p-2 rounded ${checked === null ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-        >
-          <HelpCircle className="w-4 h-4" />
-        </button>
-      </div>
-      <span className="text-sm text-slate-300">{label}</span>
-    </div>
-  )
-}
-
-function BooleanField({ label, checked, onChange }: { label: string, checked: boolean, onChange: (val: boolean) => void }) {
-  return (
-    <div className="flex items-center space-x-3 p-3 bg-slate-900/30 rounded-lg border border-slate-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 rounded border-slate-600 text-emerald-600 focus:ring-emerald-500"
-      />
-      <span className="text-sm text-slate-300">{label}</span>
-    </div>
-  )
-}
-
-function MetricsSection({ title, metrics, assisted, soft }: any) {
-  return (
-    <div className="mb-4">
-      <h4 className="text-sm font-semibold text-slate-400 mb-2">{title}</h4>
-      <div className="space-y-2">
-        {metrics.map((m: any, idx: number) => (
-          <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg border border-slate-700">
-            <div className="flex-1">
-              <div className="text-white">{m.name}</div>
-              <div className="text-xs text-slate-500">
-                {m.value_display} | 阈值: {m.threshold}
-              </div>
-              {assisted && (
-                <div className="text-xs text-slate-600 mt-1">
-                  系统建议: {m.system_suggestion ? '✅ 通过' : '❌ 未通过'} | 
-                  用户确认: {m.user_confirmed ? '✅ 是' : '❌ 否'}
-                </div>
-              )}
-            </div>
-            <div className={`px-3 py-1 rounded text-sm font-bold ${m.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-              {m.points}分
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function PriceCard({ label, value, highlight, current }: any) {
-  return (
-    <div className={`p-4 rounded-lg ${highlight ? 'bg-emerald-500/10 border-2 border-emerald-500/50' : current ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-slate-900/30 border border-slate-700'}`}>
-      <div className="text-xs text-slate-400 mb-1">{label}</div>
-      <div className={`text-2xl font-mono font-bold ${highlight ? 'text-emerald-400' : current ? 'text-blue-400' : 'text-white'}`}>
-        ${value.toFixed(2)}
-      </div>
-    </div>
-  )
-}
-
-function PyramidLevel({ level }: any) {
-  const isTriggered = level.description.includes('已触发')
-  return (
-    <div className={`flex items-center justify-between p-4 rounded-lg ${isTriggered ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-slate-900/30 border border-slate-700'}`}>
-      <div className="flex items-center space-x-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isTriggered ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
-          {level.level}
-        </div>
-        <div>
-          <div className="text-white font-medium">{level.description}</div>
-          <div className="text-sm text-slate-400">仓位: {(level.percentage * 100).toFixed(0)}%</div>
-        </div>
-      </div>
-      <div className="text-xl font-mono text-white">${level.price.toFixed(2)}</div>
-    </div>
-  )
-}
 
 function getTierColor(tier: string) {
   const colors: any = {

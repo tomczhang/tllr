@@ -1,16 +1,16 @@
 """
-yfinance 数据服务封装 - 防爬虫优化版本
-包含请求延迟、重试机制、完整的反爬虫措施
+Yahoo Finance 数据服务 - 自动握手版本
+实现 Cookie + Crumb 自动获取，直接调用 Yahoo Finance API
 """
 
 from typing import Optional, Dict, Any
-import yfinance as yf
 import pandas as pd
 import requests
 import logging
 import time
 import random
 from functools import wraps
+from datetime import datetime
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -26,7 +26,6 @@ def retry_on_error(max_retries=3, delay=2):
                     result = func(*args, **kwargs)
                     if result is not None:
                         return result
-                    # 如果返回 None，等待后重试
                     if attempt < max_retries - 1:
                         wait_time = delay * (attempt + 1) + random.uniform(0.5, 1.5)
                         logger.info(f"第 {attempt + 1} 次尝试失败，等待 {wait_time:.1f}秒后重试...")
@@ -38,27 +37,27 @@ def retry_on_error(max_retries=3, delay=2):
                         time.sleep(wait_time)
                     else:
                         logger.error(f"重试 {max_retries} 次后仍然失败: {e}")
-                        raise
+                        return None
             return None
         return wrapper
     return decorator
 
+
 class YFinanceService:
-    """Yahoo Finance 数据服务 - 防爬虫优化版"""
+    """Yahoo Finance 数据服务 - 自动握手版"""
     
     def __init__(self):
         # 1. 创建持久化 Session
         self.session = requests.Session()
         
-        # 2. 完整的浏览器请求头（关键！）
+        # 2. 完整的浏览器请求头
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
             "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1"
+            "Upgrade-Insecure-Requests": "1",
         })
         
         # 3. 配置代理
@@ -67,7 +66,11 @@ class YFinanceService:
             'https': 'http://127.0.0.1:7890',
         }
         
-        # 4. 请求计数器（用于限流）
+        # 4. Crumb缓存
+        self.crumb = None
+        self.crumb_timestamp = 0
+        
+        # 5. 请求计数器
         self.request_count = 0
         self.last_request_time = 0
 
@@ -78,71 +81,115 @@ class YFinanceService:
         
         if time_since_last < 1.5:
             sleep_time = 1.5 - time_since_last + random.uniform(0.2, 0.8)
-            logger.debug(f"限流：等待 {sleep_time:.2f} 秒")
             time.sleep(sleep_time)
         
         self.last_request_time = time.time()
         self.request_count += 1
     
+    def _get_crumb(self) -> Optional[str]:
+        """
+        获取 Yahoo Finance Crumb（自动握手）
+        Crumb有效期约30分钟，缓存后复用
+        """
+        # 如果有缓存且未过期（30分钟），直接返回
+        if self.crumb and (time.time() - self.crumb_timestamp) < 1800:
+            return self.crumb
+        
+        try:
+            # 步骤1: 访问首页获取Cookie
+            logger.info("🔄 正在获取 Yahoo Finance Cookie...")
+            r = self.session.get("https://finance.yahoo.com", timeout=10)
+            if r.status_code != 200:
+                logger.error(f"Cookie 获取失败: {r.status_code}")
+                return None
+            
+            # 步骤2: 获取Crumb
+            logger.info("🔄 正在获取 Crumb...")
+            crumb_response = self.session.get(
+                "https://query1.finance.yahoo.com/v1/test/getcrumb",
+                timeout=10
+            )
+            
+            if crumb_response.status_code != 200:
+                logger.error(f"Crumb 获取失败: {crumb_response.status_code}")
+                return None
+            
+            crumb = crumb_response.text.strip()
+            
+            if "Invalid" in crumb or len(crumb) == 0:
+                logger.error("Crumb 无效")
+                return None
+            
+            # 缓存Crumb
+            self.crumb = crumb
+            self.crumb_timestamp = time.time()
+            logger.info(f"✅ Crumb 获取成功: {crumb[:10]}...")
+            
+            return crumb
+            
+        except Exception as e:
+            logger.error(f"获取 Crumb 失败: {e}")
+            return None
+    
     @retry_on_error(max_retries=3, delay=2)
     def get_stock_info(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
-        获取股票基础信息
-        支持 A股(.SS/.SZ)、美股、港股(.HK)
+        获取股票基础信息和财务数据
+        使用 quoteSummary API
         """
         self._rate_limit()
         
+        crumb = self._get_crumb()
+        if not crumb:
+            logger.error(f"无法获取 Crumb，跳过 {symbol}")
+            return None
+        
         try:
-            # 把 session 传给 Ticker
-            stock = yf.Ticker(symbol, session=self.session)
+            # 请求财务数据和基本信息
+            modules = "price,summaryDetail,defaultKeyStatistics,financialData"
+            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
+            params = {
+                "modules": modules,
+                "crumb": crumb
+            }
             
-            # 先获取历史数据（更可靠）
-            hist = stock.history(period="5d")
-            if hist.empty:
-                logger.warning(f"无法获取 {symbol} 的历史数据")
+            response = self.session.get(url, params=params, timeout=15)
+            
+            if response.status_code != 200:
+                logger.error(f"quoteSummary API 返回错误: {response.status_code}")
                 return None
             
-            current_price = float(hist['Close'].iloc[-1])
+            data = response.json()
+            result = data.get("quoteSummary", {}).get("result")
             
-            # 尝试获取详细信息（可能失败）
-            try:
-                info = stock.info
-                company_name = info.get("longName") or info.get("shortName") or symbol
-                sector = info.get("sector")
-                industry = info.get("industry")
-                market_cap = info.get("marketCap")
-                currency = info.get("currency", "USD")
-            except:
-                # 如果详细信息失败，使用基础信息
-                logger.warning(f"无法获取 {symbol} 的详细信息，使用基础数据")
-                company_name = symbol
-                sector = None
-                industry = None
-                market_cap = None
-                currency = "USD"
+            if not result or len(result) == 0:
+                logger.error(f"无数据: {symbol}")
+                return None
+            
+            quote_data = result[0]
+            
+            # 提取数据
+            price_data = quote_data.get("price", {})
+            summary = quote_data.get("summaryDetail", {})
+            
+            def safe_get(data_dict, default=None):
+                """安全获取 raw 值"""
+                if isinstance(data_dict, dict):
+                    return data_dict.get("raw", default)
+                return data_dict if data_dict is not None else default
             
             return {
                 "symbol": symbol,
-                "company_name": company_name,
-                "sector": sector,
-                "industry": industry,
-                "market_cap": market_cap,
-                "current_price": current_price,
-                "currency": currency,
+                "company_name": price_data.get("longName") or price_data.get("shortName") or symbol,
+                "sector": safe_get(price_data.get("sector")),
+                "industry": safe_get(price_data.get("industry")),
+                "market_cap": safe_get(price_data.get("marketCap")),
+                "current_price": safe_get(price_data.get("regularMarketPrice")),
+                "currency": price_data.get("currency", "USD"),
             }
+            
         except Exception as e:
             logger.error(f"获取股票信息失败: {symbol}, 错误: {str(e)}")
-            return None
-
-    def get_current_price(self, symbol: str) -> Optional[float]:
-        """获取当前价格"""
-        try:
-            hist = self.get_historical_data(symbol, period="1d")
-            if hist is not None and not hist.empty:
-                return float(hist['Close'].iloc[-1])
-            return None
-        except Exception as e:
-            logger.error(f"获取价格失败: {symbol}, 错误: {str(e)}")
             return None
     
     @retry_on_error(max_retries=3, delay=2)
@@ -154,24 +201,87 @@ class YFinanceService:
     ) -> Optional[pd.DataFrame]:
         """
         获取历史数据
-        period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max
-        interval: 1d, 1wk, 1mo
+        使用 chart API（不需要crumb）
         """
         self._rate_limit()
         
         try:
-            stock = yf.Ticker(symbol, session=self.session)
-            hist = stock.history(period=period, interval=interval)
+            # 转换period为时间范围
+            period_map = {
+                "1d": 1,
+                "5d": 5,
+                "1mo": 30,
+                "3mo": 90,
+                "6mo": 180,
+                "1y": 365,
+                "2y": 730,
+                "5y": 1825,
+                "10y": 3650,
+                "max": 36500
+            }
             
-            if hist.empty:
-                logger.warning(f"{symbol}: 无数据 (period={period})")
+            days = period_map.get(period, 3650)
+            period2 = int(time.time())
+            period1 = period2 - (days * 24 * 60 * 60)
+            
+            # 使用 chart API
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+            params = {
+                "period1": period1,
+                "period2": period2,
+                "interval": interval,
+                "events": "div,splits"
+            }
+            
+            response = self.session.get(url, params=params, timeout=15)
+            
+            if response.status_code != 200:
+                logger.error(f"chart API 返回错误: {response.status_code}")
                 return None
             
-            # 重置索引，将日期变为列
-            hist = hist.reset_index()
-            return hist
+            data = response.json()
+            chart = data.get("chart", {}).get("result")
+            
+            if not chart or len(chart) == 0:
+                logger.error(f"无历史数据: {symbol}")
+                return None
+            
+            result = chart[0]
+            timestamps = result.get("timestamp", [])
+            quotes = result.get("indicators", {}).get("quote", [{}])[0]
+            
+            # 构建DataFrame
+            df = pd.DataFrame({
+                "Date": [datetime.fromtimestamp(ts) for ts in timestamps],
+                "Open": quotes.get("open", []),
+                "High": quotes.get("high", []),
+                "Low": quotes.get("low", []),
+                "Close": quotes.get("close", []),
+                "Volume": quotes.get("volume", []),
+            })
+            
+            # 清理NaN
+            df = df.dropna()
+            
+            if df.empty:
+                logger.warning(f"{symbol}: 历史数据为空 (period={period})")
+                return None
+            
+            return df
+            
         except Exception as e:
             logger.error(f"获取历史数据失败: {symbol}, 错误: {str(e)}")
+            return None
+    
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        """获取当前价格"""
+        try:
+            hist = self.get_historical_data(symbol, period="1d")
+            if hist is not None and not hist.empty:
+                return float(hist['Close'].iloc[-1])
+            return None
+        except Exception as e:
+            logger.error(f"获取价格失败: {symbol}, 错误: {str(e)}")
             return None
     
     @staticmethod
@@ -206,10 +316,9 @@ class YFinanceService:
         self._rate_limit()
         
         try:
-            stock = yf.Ticker(symbol, session=self.session)
-            hist = stock.history(period="1y")
+            hist = self.get_historical_data(symbol, period="1y")
             
-            if hist.empty:
+            if hist is None or hist.empty:
                 return None
             
             year_high = float(hist['High'].max())
