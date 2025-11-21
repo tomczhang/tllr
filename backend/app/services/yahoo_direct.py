@@ -10,6 +10,7 @@ from datetime import datetime
 import time
 import random
 import logging
+from app.services.currency_converter import get_currency_converter
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class YahooDirectAPI:
         })
         self.base_url = "https://query1.finance.yahoo.com"
         self.last_request_time = 0
+        self.currency_converter = get_currency_converter()  # 货币转换器
     
     def _rate_limit(self):
         """请求限流"""
@@ -63,14 +65,28 @@ class YahooDirectAPI:
                     if data.get('quoteResponse') and data['quoteResponse'].get('result'):
                         quote = data['quoteResponse']['result'][0]
                         
+                        # 获取货币和市值
+                        currency = quote.get("currency", "USD")
+                        market_cap = quote.get("marketCap")
+                        
+                        # 如果市值不是USD，转换为USD
+                        market_cap_usd = market_cap
+                        if market_cap and currency != "USD":
+                            try:
+                                market_cap_usd = self.currency_converter.convert_to_usd(market_cap, currency)
+                                logger.info(f"✅ 市值转换: {market_cap:,.0f} {currency} → ${market_cap_usd:,.0f} USD")
+                            except Exception as e:
+                                logger.warning(f"市值转换失败 {symbol}: {e}，使用原始值")
+                        
                         return {
                             "symbol": symbol,
                             "company_name": quote.get("longName") or quote.get("shortName") or symbol,
                             "sector": quote.get("sector"),
                             "industry": quote.get("industry"),
-                            "market_cap": quote.get("marketCap"),
+                            "market_cap": market_cap_usd,  # 统一为USD
+                            "market_cap_original": market_cap,  # 保留原始值
                             "current_price": current_price,
-                            "currency": quote.get("currency", "USD"),
+                            "currency": currency,  # 保留原始货币信息
                         }
             except Exception as e:
                 logger.warning(f"无法获取 {symbol} 详细信息: {e}")

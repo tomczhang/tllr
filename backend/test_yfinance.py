@@ -1,8 +1,33 @@
 import requests
 import time
+from datetime import datetime
+
+def safe_extract(data_dict, key):
+    """
+    🛡️ 防御性提取函数
+    Yahoo API 极其不稳定，有时候返回 {"raw": 123, "fmt": "123"}，有时候直接返回 123。
+    这个函数能同时处理这两种情况。
+    """
+    if not isinstance(data_dict, dict):
+        return 0
+    
+    value = data_dict.get(key)
+    
+    # 情况 1: 它是 None
+    if value is None:
+        return 0
+    
+    # 情况 2: 它是一个字典 (标准情况)，取里面的 raw
+    if isinstance(value, dict):
+        return value.get("raw", 0)
+    
+    # 情况 3: 它直接就是个数字 (非标情况，导致你报错的原因)
+    if isinstance(value, (int, float)):
+        return value
+        
+    return 0
 
 def get_data_with_crumb(ticker):
-    # 1. 定义 Session (伪装浏览器)
     session = requests.Session()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
@@ -16,128 +41,87 @@ def get_data_with_crumb(ticker):
     print(f"🚀 开始分析股票: {ticker}")
     print("-" * 40)
 
-    # --- 步骤 1: 获取 Cookie ---
+    # 1. 获取 Cookie
     try:
         r = session.get("https://finance.yahoo.com", timeout=10)
         if r.status_code != 200:
             print(f"❌ Cookie 获取失败: {r.status_code}")
             return
     except Exception as e:
-        print(f"❌ 网络错误: {e}")
+        print(f"❌ Cookie 网络错误: {e}")
         return
 
-    # --- 步骤 2: 获取 Crumb ---
+    # 2. 获取 Crumb
     try:
         crumb = session.get("https://query1.finance.yahoo.com/v1/test/getcrumb", timeout=10).text.strip()
         if "Invalid" in crumb:
-            print("❌ Crumb 获取失败")
+            print("❌ Crumb 获取失败 (Invalid)")
             return
     except Exception as e:
         print(f"❌ Crumb 请求异常: {e}")
         return
 
-    # --- 步骤 3: 获取核心财务数据 ---
+    # 3. 获取数据
     try:
-        # 请求三个关键模块
-        modules = "financialData,cashflowStatementHistory,summaryDetail"
+        modules = "financialData,cashflowStatementHistory,summaryDetail,defaultKeyStatistics,quoteType"
         url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules={modules}&crumb={crumb}"
         
         resp = session.get(url, timeout=10).json()
-        if not resp["quoteSummary"]["result"]:
-            print("❌ 无数据")
+        if not resp.get("quoteSummary", {}).get("result"):
+            print("❌ API 返回空数据")
             return
-            
+
         data = resp["quoteSummary"]["result"][0]
         
-        # ================= 数据提取与分析 =================
+        # === 解析上市年限 (使用 safe_extract 防御) ===
+        quote_type = data.get("quoteType", {})
+        key_stats = data.get("defaultKeyStatistics", {})
         
-        # 1. 盈利能力 (Profitability)
-        # ------------------------------------------------
-        fin_data = data.get("financialData", {})
+        # 优先查 quoteType，没有再查 key_stats
+        first_trade_epoch = safe_extract(quote_type, "firstTradeDateEpochUtc")
+        if not first_trade_epoch:
+            first_trade_epoch = safe_extract(key_stats, "firstTradeDateEpochUtc")
         
-        # 毛利率 (Gross Margins)
-        gross_margin_raw = fin_data.get("grossMargins", {}).get("raw", 0)
-        gross_margin_fmt = fin_data.get("grossMargins", {}).get("fmt", "N/A")
+        listing_info = "未知"
+        is_veteran = False
         
-        # ROE (Return on Equity)
-        roe_raw = fin_data.get("returnOnEquity", {}).get("raw", 0)
-        roe_fmt = fin_data.get("returnOnEquity", {}).get("fmt", "N/A")
-        
-        # 判定逻辑
-        is_high_margin = gross_margin_raw > 0.40  # > 40%
-        is_efficient = roe_raw > 0.15             # > 15%
+        if first_trade_epoch:
+            first_date = datetime.fromtimestamp(first_trade_epoch)
+            date_str = first_date.strftime('%Y-%m-%d')
+            years = (time.time() - first_trade_epoch) / (365.25 * 24 * 3600)
+            listing_info = f"{years:.1f} 年 (IPO: {date_str})"
+            is_veteran = years > 10
 
-        # 2. 安全性 (Safety) - 现金 vs 债务
-        # ------------------------------------------------
-        total_cash = fin_data.get("totalCash", {}).get("raw", 0)
-        total_cash_fmt = fin_data.get("totalCash", {}).get("fmt", "N/A")
-        
-        total_debt = fin_data.get("totalDebt", {}).get("raw", 0)
-        total_debt_fmt = fin_data.get("totalDebt", {}).get("fmt", "N/A")
-        
-        # 判定逻辑
-        is_cash_safe = total_cash > total_debt
-
-        # 3. 股东回报 (Returns) - 分红与回购
-        # ------------------------------------------------
+        # === 解析财务数据 (全部换用 safe_extract) ===
+        fin = data.get("financialData", {})
         sum_detail = data.get("summaryDetail", {})
-        cash_flow = data.get("cashflowStatementHistory", {}).get("cashflowStatements", [])
         
-        # 分红 (Dividend)
-        div_rate = sum_detail.get("dividendRate", {}).get("raw", 0)
-        div_yield = sum_detail.get("dividendYield", {}).get("fmt", "0.00%")
+        # 市值
+        market_cap = safe_extract(sum_detail, "marketCap")
         
-        # 回购 (Buyback) - 从最近一年的现金流量表看
-        # repurchaseOfStock 通常是负数，表示现金流出
-        last_year_buyback_raw = 0
-        last_year_div_paid_raw = 0
+        # 盈利
+        gross_margin = safe_extract(fin, "grossMargins")
+        roe = safe_extract(fin, "returnOnEquity")
         
-        if cash_flow:
-            latest = cash_flow[0]
-            # 回购金额
-            raw_buyback = latest.get("repurchaseOfStock", {}).get("raw", 0)
-            last_year_buyback_raw = abs(raw_buyback)
-            # 分红支付金额
-            raw_div_paid = latest.get("dividendsPaid", {}).get("raw", 0)
-            last_year_div_paid_raw = abs(raw_div_paid)
-
-        has_shareholder_return = (div_rate > 0) or (last_year_buyback_raw > 0)
-
-        # ================= 打印分析报告 =================
+        # 安全性
+        total_cash = safe_extract(fin, "totalCash")
+        total_debt = safe_extract(fin, "totalDebt")
         
-        print(f"📊 【{ticker} 深度财务体检报告】")
+        # 打印结果
+        print(f"📊 【{ticker} 深度分析报告】")
         print("=" * 40)
-        
-        print("\n1️⃣  盈利能力 (Profitability)")
-        print(f"   • 毛利率: {gross_margin_fmt}\t " + ("✅ 优秀 (>40%)" if is_high_margin else "⚠️ 一般"))
-        print(f"   • ROE:    {roe_fmt}\t " + ("✅ 优秀 (>15%)" if is_efficient else "⚠️ 一般"))
-        
-        print("\n2️⃣  财务安全 (Safety)")
-        print(f"   • 总现金: {total_cash_fmt}")
-        print(f"   • 总债务: {total_debt_fmt}")
-        print(f"   • 结论:   " + ("✅ 现金充裕 (现金 > 债务)" if is_cash_safe else "⚠️ 负债经营 (需关注现金流)"))
-        
-        print("\n3️⃣  股东回报 (Returns)")
-        if has_shareholder_return:
-            print("   ✅ 检测到持续回报行为")
-            if div_rate > 0:
-                print(f"   • 分红: 派息率 {div_yield}")
-            else:
-                print(f"   • 分红: 无")
-            
-            if last_year_buyback_raw > 0:
-                # 格式化回购金额 (Billion/Million)
-                bb_amount = f"{last_year_buyback_raw / 1e9:.2f}B" if last_year_buyback_raw > 1e9 else f"{last_year_buyback_raw / 1e6:.2f}M"
-                print(f"   • 回购: 去年回购约 ${bb_amount}")
-        else:
-            print("   ❌ 铁公鸡 (无分红且无回购)")
-
-        print("\n" + "=" * 40)
+        print(f"📅 上市年限: {listing_info}")
+        print(f"🏢 市值: ${market_cap / 1e9:.2f}B")
+        print(f"📈 毛利率: {gross_margin:.2%}")
+        print(f"💎 ROE: {roe:.2%}")
+        print(f"💰 现金/债务: ${total_cash/1e9:.2f}B / ${total_debt/1e9:.2f}B")
+        print("=" * 40)
 
     except Exception as e:
         print(f"❌ 解析异常: {e}")
+        # 打印详细错误栈以便排查
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
-    # 记得带上 export 代理命令运行
-    # 试试看 AAPL (苹果), TSLA (特斯拉), KO (可口可乐)
     get_data_with_crumb("AAPL")

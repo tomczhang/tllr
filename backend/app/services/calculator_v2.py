@@ -6,6 +6,9 @@
 from typing import Dict, List, Any, Optional
 import pandas as pd
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.services.yahoo_direct import get_yahoo_service
 from app.services.yahoo_financial import get_financial_service
@@ -83,6 +86,11 @@ class GreedyHunterCalculatorV2:
         
         # 4. 获取财务数据
         financial_data = self.financial_service.get_financial_data(symbol)
+        
+        # 🔧 修复：如果 stock_info 没有市值，用 financial_data 的市值补充
+        if not stock_info.market_cap and financial_data.get("market_cap"):
+            stock_info.market_cap = financial_data.get("market_cap")
+            logger.info(f"✅ 使用 financial_data 补充市值: ${stock_info.market_cap/1e9:.1f}B")
         
         # 5. 执行8分制质量评估
         quality_assessment = self._calculate_quality_assessment(

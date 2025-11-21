@@ -13,6 +13,39 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+def safe_extract(data_dict, key):
+    """
+    🛡️ 防御性提取函数
+    Yahoo API 极其不稳定，有时候返回 {"raw": 123, "fmt": "123"}，有时候直接返回 123。
+    这个函数能同时处理这两种情况。
+    
+    Args:
+        data_dict: Yahoo API 返回的数据字典
+        key: 要提取的键名
+    
+    Returns:
+        提取的值（数字），如果无法提取则返回 0 或 None
+    """
+    if not isinstance(data_dict, dict):
+        return None
+    
+    value = data_dict.get(key)
+    
+    # 情况 1: 它是 None
+    if value is None:
+        return None
+    
+    # 情况 2: 它是一个字典 (标准情况)，取里面的 raw
+    if isinstance(value, dict):
+        return value.get("raw")
+    
+    # 情况 3: 它直接就是个数字 (非标情况)
+    if isinstance(value, (int, float)):
+        return value
+        
+    return None
+
+
 class YahooFinancialService:
     """Yahoo Finance 财务数据服务（自动握手版）"""
     
@@ -103,7 +136,12 @@ class YahooFinancialService:
         - dividend_rate: 分红率（小数）
         - buyback_amount: 回购金额（美元，最近一年）
         - first_trade_date_epoch: 首次交易时间戳
-        - listing_years: 上市年限（年）
+        - first_trade_date_str: 首次交易日期字符串（格式：YYYY-MM-DD）
+        - listing_years: 上市年限（年，保留一位小数）
+        
+        改进：
+        - 优先从 quoteType 获取上市时间，如果没有再从 defaultKeyStatistics 获取
+        - 使用 safe_extract 函数处理 Yahoo API 的不稳定性
         """
         self._rate_limit()
         
@@ -117,6 +155,7 @@ class YahooFinancialService:
             "dividend_rate": None,
             "buyback_amount": None,
             "first_trade_date_epoch": None,
+            "first_trade_date_str": None,  # 新增：IPO日期字符串
             "listing_years": None
         }
         
@@ -126,8 +165,8 @@ class YahooFinancialService:
             return default_data
         
         try:
-            # 请求三个关键模块
-            modules = "financialData,cashflowStatementHistory,summaryDetail,defaultKeyStatistics"
+            # 请求关键模块（新增 quoteType 用于获取上市时间）
+            modules = "financialData,cashflowStatementHistory,summaryDetail,defaultKeyStatistics,quoteType"
             url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
             params = {
                 "modules": modules,
@@ -153,21 +192,33 @@ class YahooFinancialService:
             fin_data = quote_data.get("financialData", {})
             sum_detail = quote_data.get("summaryDetail", {})
             key_stats = quote_data.get("defaultKeyStatistics", {})
+            quote_type = quote_data.get("quoteType", {})
             cash_flow = quote_data.get("cashflowStatementHistory", {}).get("cashflowStatements", [])
             
-            # 安全获取数值
+            # 安全获取数值（兼容旧代码，保留此函数）
             def safe_get(data_dict, default=None):
                 """安全获取 Yahoo Finance 的 raw 值"""
                 if isinstance(data_dict, dict):
                     return data_dict.get("raw", default)
                 return data_dict if data_dict is not None else default
             
-            # 计算上市年限
-            first_trade_epoch = safe_get(key_stats.get("firstTradeDateEpochUtc"))
+            # === 改进：优先从 quoteType 获取上市年限，如果没有再从 defaultKeyStatistics 获取 ===
+            first_trade_epoch = safe_extract(quote_type, "firstTradeDateEpochUtc")
+            if not first_trade_epoch:
+                first_trade_epoch = safe_extract(key_stats, "firstTradeDateEpochUtc")
+            
             listing_years = None
+            first_trade_date_str = None
+            
             if first_trade_epoch:
-                years = (datetime.now().timestamp() - first_trade_epoch) / (365.25 * 24 * 3600)
-                listing_years = int(years)
+                try:
+                    first_date = datetime.fromtimestamp(first_trade_epoch)
+                    first_trade_date_str = first_date.strftime('%Y-%m-%d')
+                    years = (time.time() - first_trade_epoch) / (365.25 * 24 * 3600)
+                    listing_years = round(years, 1)  # 保留一位小数，更精确
+                    logger.info(f"✅ {symbol} 上市年限: {listing_years}年 (IPO: {first_trade_date_str})")
+                except Exception as e:
+                    logger.warning(f"解析上市时间失败 {symbol}: {e}")
             
             # 处理回购数据（取最近一年的数据）
             buyback = 0
@@ -179,15 +230,17 @@ class YahooFinancialService:
                     if buyback_raw and buyback_raw < 0:
                         buyback = abs(buyback_raw)
             
+            # 使用 safe_extract 提取所有关键财务指标，增强稳定性
             return {
-                "market_cap": safe_get(sum_detail.get("marketCap")),
-                "total_cash": safe_get(fin_data.get("totalCash")),
-                "total_debt": safe_get(fin_data.get("totalDebt")),
-                "gross_margins": safe_get(fin_data.get("grossMargins")),
-                "return_on_equity": safe_get(fin_data.get("returnOnEquity")),
-                "dividend_rate": safe_get(sum_detail.get("dividendYield"), 0),  # 使用 dividendYield（百分比）
+                "market_cap": safe_extract(sum_detail, "marketCap") or safe_get(sum_detail.get("marketCap")),
+                "total_cash": safe_extract(fin_data, "totalCash") or safe_get(fin_data.get("totalCash")),
+                "total_debt": safe_extract(fin_data, "totalDebt") or safe_get(fin_data.get("totalDebt")),
+                "gross_margins": safe_extract(fin_data, "grossMargins") or safe_get(fin_data.get("grossMargins")),
+                "return_on_equity": safe_extract(fin_data, "returnOnEquity") or safe_get(fin_data.get("returnOnEquity")),
+                "dividend_rate": safe_extract(sum_detail, "dividendYield") or safe_get(sum_detail.get("dividendYield"), 0),
                 "buyback_amount": buyback if buyback > 0 else None,
                 "first_trade_date_epoch": first_trade_epoch,
+                "first_trade_date_str": first_trade_date_str,  # 新增：IPO日期字符串
                 "listing_years": listing_years
             }
             
