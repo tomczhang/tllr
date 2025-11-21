@@ -5,7 +5,7 @@
 
 from typing import Dict, List, Any, Optional
 import pandas as pd
-from app.services.yfinance_srv import YFinanceService
+from app.services.yahoo_direct import get_yahoo_service
 from app.schemas.stock import (
     AnalysisResult, 
     StockInfo, 
@@ -18,7 +18,8 @@ class GreedyHunterCalculator:
     """贪婪猎人建仓计算器"""
     
     def __init__(self):
-        self.yf_service = YFinanceService()
+        # 使用直接调用 Yahoo API 的服务（绕过 yfinance 限制）
+        self.yf_service = get_yahoo_service()
     
     def analyze_stock(self, symbol: str) -> Optional[AnalysisResult]:
         """

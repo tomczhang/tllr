@@ -69,5 +69,5 @@ echo ""
 echo "按 Ctrl+C 停止服务"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+export https_proxy=http://127.0.0.1:7890 && export http_proxy=http://127.0.0.1:7890 && uvicorn app.main:app --reload
 
