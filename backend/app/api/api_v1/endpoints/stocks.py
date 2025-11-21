@@ -115,3 +115,38 @@ async def get_stock_summary(symbol: str):
     
     return summary
 
+
+# ==================== 新版V2 API ====================
+
+from app.schemas.stock_v2 import StockAnalysisRequestV2, AnalysisResultV2
+from app.services.calculator_v2 import get_calculator_v2
+
+calculator_v2 = get_calculator_v2()
+
+@router.post("/analyze/v2", response_model=AnalysisResultV2)
+async def analyze_stock_v2(request: StockAnalysisRequestV2):
+    """
+    新版股票分析接口（8分制评分系统）
+    
+    支持：
+    - 用户输入内在估值
+    - 8分制质量评分（完全自动化+半自动化+完全人工）
+    - 品质系数×市场折扣的安全价公式
+    - MA50/MA200用于左右侧交易判断
+    """
+    symbol = request.symbol.upper()
+    
+    result = calculator_v2.analyze_stock(
+        symbol=symbol,
+        intrinsic_value=request.intrinsic_value,
+        user_confirmations=request.user_confirmations
+    )
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"无法获取股票 {symbol} 的数据，请检查代码是否正确"
+        )
+    
+    return result
+

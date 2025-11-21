@@ -15,8 +15,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://backend:8000',
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 60000, // 60秒超时（yfinance可能比较慢）
       },
     },
   },

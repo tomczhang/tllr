@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import CalculatorPage from './pages/CalculatorPage'
+import CalculatorPageV2 from './pages/CalculatorPageV2'
 import PortfolioPage from './pages/PortfolioPage'
 import NotesPage from './pages/NotesPage'
 
@@ -35,6 +36,7 @@ function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="calculator" element={<CalculatorPage />} />
+          <Route path="calculator-v2" element={<CalculatorPageV2 />} />
           <Route path="portfolio" element={<PortfolioPage />} />
           <Route path="notes" element={<NotesPage />} />
         </Route>
