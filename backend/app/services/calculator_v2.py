@@ -380,10 +380,13 @@ class GreedyHunterCalculatorV2:
         hist_data: pd.DataFrame,
         current_price: float
     ) -> TechnicalAnalysis:
-        """技术分析：MA50/MA200 + MDD"""
+        """技术分析：MA50/MA200 + MDD + 120日前高"""
         # MA计算
         ma50 = hist_data['Close'].tail(50).mean() if len(hist_data) >= 50 else current_price
         ma200 = hist_data['Close'].tail(200).mean() if len(hist_data) >= 200 else current_price
+        
+        # 120日最高价（约6个月前高）
+        high_120d = hist_data['High'].tail(120).max() if len(hist_data) >= 120 else current_price
         
         # 判断左右侧
         if current_price > ma50 and current_price > ma200:
@@ -409,6 +412,7 @@ class GreedyHunterCalculatorV2:
         return TechnicalAnalysis(
             ma50=ma50,
             ma200=ma200,
+            high_120d=high_120d,  # 新增：120日最高价
             trading_side=trading_side,
             trading_description=trading_desc,
             max_drawdown=max_drawdown,

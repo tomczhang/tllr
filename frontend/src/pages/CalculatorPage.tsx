@@ -373,6 +373,27 @@ export default function CalculatorPage() {
                   <div className="text-4xl font-mono font-bold text-white tracking-tight">
                     ${result.current_price.toFixed(2)}
                   </div>
+                  
+                  {/* 120日前高跌幅警告 */}
+                  {(() => {
+                    const high120d = result.technical_analysis.high_120d;
+                    const current = result.current_price;
+                    const dropPercent = ((high120d - current) / high120d * 100);
+                    
+                    if (dropPercent < 15 && dropPercent >= 0) {
+                      return (
+                        <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                          <div className="text-xs text-red-400 font-medium">
+                            ⚠️ 距120日前高仅跌{dropPercent.toFixed(1)}%
+                          </div>
+                          <div className="text-[10px] text-red-300/70 mt-0.5">
+                            不符合首仓安全阈值（需跌幅≥15%）
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -799,6 +820,9 @@ export default function CalculatorPage() {
                       }
                       const avgCost = totalShares > 0 ? weightedSum / totalShares : level.price
                       const avgCostReduction = ((result.pricing.safe_buy_price - avgCost) / result.pricing.safe_buy_price * 100).toFixed(1)
+                      
+                      // 计算回本所需反弹幅（从当前网格价反弹到平均成本需要的涨幅）
+                      const breakEvenReboundPercent = ((avgCost - level.price) / level.price * 100).toFixed(1)
 
                       return (
                         <tr key={idx} className={`hover:bg-slate-800/30 transition-colors ${isTriggered ? 'bg-emerald-500/5' : ''
@@ -816,12 +840,17 @@ export default function CalculatorPage() {
                             {((level.percentage * 10) / 0.1).toFixed(1)}
                           </td>
                           <td className="py-3 px-4">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-xs text-slate-400">
-                                回撤: <span className="text-red-400 font-mono">-{cumulativeDrawdown}%</span>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="text-slate-400">
+                                累计回撤: <span className="text-red-400 font-mono">-{cumulativeDrawdown}%</span>
                               </span>
-                              <span className="text-xs text-slate-400">
-                                降本: <span className="text-emerald-400 font-mono">-{avgCostReduction}%</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400">
+                                成本拉低: <span className="text-emerald-400 font-mono">-{avgCostReduction}%</span>
+                              </span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400">
+                                回本所需反弹: <span className="text-blue-400 font-mono">+{breakEvenReboundPercent}%</span>
                               </span>
                             </div>
                           </td>
