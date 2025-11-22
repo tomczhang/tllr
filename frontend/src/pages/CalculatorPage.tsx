@@ -128,7 +128,7 @@ export default function CalculatorPage() {
               className="h-[42px] px-6 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center min-w-[120px]"
             >
               {isAnalyzing ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <>正在获得猎杀数据...</>
               ) : (
                 <>
                   分析
@@ -343,12 +343,10 @@ export default function CalculatorPage() {
                           <div className="text-sm font-bold text-red-400 mb-1">
                             ⚠️ 重要风险提示：距120日前高仅跌{dropPercent.toFixed(1)}%
                           </div>
-                          <div className="text-xs text-red-300/80 space-y-1">
-                            <div>
-                              120日前高：<span className="font-mono font-semibold">${high120d.toFixed(2)}</span>
-                              {high120dDate && <span className="ml-2 text-red-300/60">({high120dDate})</span>}
-                            </div>
-                            <div>不符合首仓安全阈值（需跌幅≥15%）。建议等待更大回撤空间，避免追高风险。</div>
+                          <div className="text-xs text-red-300/80">
+                            120日前高：<span className="font-mono font-semibold">${high120d.toFixed(2)}</span>
+                            {high120dDate && <span className="ml-1 text-red-300/60">({high120dDate})</span>}
+                            <span className="ml-2">不符合首仓安全阈值（需跌幅≥15%）。建议谨慎思考，等待更大回撤空间，避免追高风险。</span>
                           </div>
                         </div>
                       </div>
@@ -717,9 +715,33 @@ export default function CalculatorPage() {
                   <div className="text-xl font-mono font-bold text-emerald-400">{result.pricing.quality_coefficient}</div>
                 </div>
                 <div className="text-slate-600 font-bold text-lg">×</div>
-                <div className="text-center">
-                  <div className="text-slate-400 mb-1">市场折扣系数</div>
+                <div className="text-center relative group">
+                  <div className="text-slate-400 mb-1 cursor-help">市场折扣系数</div>
                   <div className="text-xl font-mono font-bold text-purple-400">{result.pricing.market_discount}</div>
+                  
+                  {/* Hover Tooltip - 市场折扣说明 */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 min-w-[280px]">
+                    <div className="text-xs font-bold text-white mb-2 border-b border-slate-700 pb-2">市场折扣系数分级</div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-blue-300 font-medium">美股市场 (US)</span>
+                        <span className="font-mono text-slate-300">1.0 (无折扣)</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-emerald-300 font-medium">A股市场 (A)</span>
+                        <span className="font-mono text-slate-300">0.85 (流动性折扣)</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-orange-300 font-medium">港股市场 (HK)</span>
+                        <span className="font-mono text-slate-300">0.70 (流动性折扣)</span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-700/50 text-slate-400 text-[10px]">
+                        ✨ 港股S级公司可享受流动性豁免 (0.85)
+                      </div>
+                    </div>
+                    {/* Arrow pointing down */}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                  </div>
                 </div>
                 <div className="text-slate-600 font-bold text-lg">=</div>
                 <div className="text-center p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
