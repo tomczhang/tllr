@@ -715,20 +715,52 @@ export default function CalculatorPage() {
                 {/* 档位信息 - 右上角 */}
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                      result.grid_tier_info.tier_name === '标准档' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                        result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                          'bg-red-500/20 text-red-300 border border-red-500/30'
-                      }`}>
-                      {result.grid_tier_info.tier_name}
-                    </span>
-                    <span className="text-xs font-mono text-slate-400">
-                      间隔 {(result.grid_tier_info.gap_rate * 100).toFixed(1)}%
-                    </span>
+                    <div className="relative group">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold cursor-help ${result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                        result.grid_tier_info.tier_name === '标准档' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                          result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                            'bg-red-500/20 text-red-300 border border-red-500/30'
+                        }`}>
+                        {result.grid_tier_info.tier_name}
+                      </span>
+                      
+                      {/* Hover Tooltip - 档位说明 */}
+                      <div className="absolute bottom-full right-0 mb-2 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 min-w-[320px]">
+                        <div className="text-xs font-bold text-white mb-2 border-b border-slate-700 pb-2">金字塔网格档位分级</div>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-blue-300 font-medium">稳健档</span>
+                              <span className="text-slate-500 text-[10px] ml-1">（间隔4%）</span>
+                            </div>
+                            <span className="text-slate-400 text-[10px] ml-2">宽基指数/顶级控股</span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-emerald-300 font-medium">标准档</span>
+                              <span className="text-slate-500 text-[10px] ml-1">（间隔7.5%）</span>
+                            </div>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 回撤&lt;50%</span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-orange-300 font-medium">激进档</span>
+                              <span className="text-slate-500 text-[10px] ml-1">（间隔10%）</span>
+                            </div>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 回撤&gt;50%</span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-red-300 font-medium">魔鬼档</span>
+                              <span className="text-slate-500 text-[10px] ml-1">（间隔15%）</span>
+                            </div>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&lt;2000亿（一票否决）</span>
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-1 right-4 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs text-slate-500">
-                    {result.grid_tier_info.judgment_reason}
-                  </span>
                 </div>
               </div>
 
