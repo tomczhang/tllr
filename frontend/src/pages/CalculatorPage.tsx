@@ -614,12 +614,16 @@ export default function CalculatorPage() {
                     <TrendingDown className="w-4 h-4 text-red-400" />
                   </div>
                   <div className={`text-2xl font-mono font-bold mb-1 ${
-                    result.technical_analysis.max_drawdown < -0.5 ? 'text-red-400' : 'text-yellow-400'
+                    result.technical_analysis.max_drawdown > 0.5 ? 'text-red-400' : 
+                    result.technical_analysis.max_drawdown > 0.3 ? 'text-yellow-400' : 
+                    'text-emerald-400'
                   }`}>
                     {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
                   </div>
                   <div className="text-xs text-slate-500">
-                    {result.technical_analysis.max_drawdown < -0.5 ? '高波动股票' : '中低波动'}
+                    {result.technical_analysis.max_drawdown > 0.5 ? '高波动股票' : 
+                     result.technical_analysis.max_drawdown > 0.3 ? '中等波动' : 
+                     '低波动'}
                   </div>
                 </div>
               </div>
