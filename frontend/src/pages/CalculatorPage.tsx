@@ -10,8 +10,8 @@ import axios from 'axios'
 interface UserConfirmations {
   gross_margin?: boolean | null
   roe?: boolean | null
-  financial_safety?: boolean | null
-  shareholder_returns?: boolean | null
+  financial_safety: boolean
+  shareholder_returns: boolean
   industry_dominance: boolean
   moat: boolean
 }
@@ -20,12 +20,12 @@ export default function CalculatorPage() {
   const [symbol, setSymbol] = useState('')
   const [intrinsicValue, setIntrinsicValue] = useState<number>(100)
   const [confirmations, setConfirmations] = useState<UserConfirmations>({
-    gross_margin: null,  // 自动判断
-    roe: null,           // 自动判断
-    financial_safety: null,  // 自动判断
-    shareholder_returns: null,  // 自动判断
-    industry_dominance: false,  // 必填
-    moat: false  // 必填
+    gross_margin: null,
+    roe: null,
+    financial_safety: false,
+    shareholder_returns: false,
+    industry_dominance: false,
+    moat: false
   })
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -79,12 +79,12 @@ export default function CalculatorPage() {
           </div>
         </div>
 
-        {/* Input Section */}
-        {/* Input Section - Compact & Optimized */}
-        <div className="card-glass p-5">
-          <div className="flex flex-col lg:flex-row items-end gap-4">
+        {/* Input Section - Two Rows */}
+        <div className="card-glass p-5 space-y-4">
+          {/* Row 1: Basic Inputs */}
+          <div className="flex flex-col md:flex-row items-end gap-4">
             {/* Stock Symbol */}
-            <div className="flex-1 w-full lg:w-auto min-w-[140px]">
+            <div className="flex-1 w-full md:w-auto min-w-[140px]">
               <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">股票代码</label>
               <div className="relative group">
                 <input
@@ -99,7 +99,7 @@ export default function CalculatorPage() {
             </div>
 
             {/* Intrinsic Value */}
-            <div className="flex-1 w-full lg:w-auto min-w-[140px]">
+            <div className="flex-1 w-full md:w-auto min-w-[140px]">
               <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">
                 <div className="group relative inline-block cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
                   内在价值
@@ -121,9 +121,32 @@ export default function CalculatorPage() {
               </div>
             </div>
 
-            {/* Quality Checks - Compact Toggles */}
-            <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700/50 h-[42px]">
-              <label className={`cursor-pointer px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.industry_dominance
+            {/* Analyze Button */}
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="h-[42px] px-6 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center min-w-[120px]"
+            >
+              {isAnalyzing ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              ) : (
+                <>
+                  分析
+                  <BarChart3 className="w-3.5 h-3.5 ml-1.5" />
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Row 2: Quality Checks with Prompt */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-slate-400">以下指标请根据公司实际情况自行确认</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+              {/* 1. Industry Dominance */}
+              <label className={`cursor-pointer px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.industry_dominance
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
                 : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300 border border-transparent'
                 }`}>
@@ -140,15 +163,14 @@ export default function CalculatorPage() {
                 <div className="group relative ml-1 cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
                   行业地位
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                    行业龙头或双寡头：赢家通吃，拒绝行业老三、老四或同质化严重的竞争者
+                    行业龙头或双寡头：赢家通吃，拒绝行业老三、老四
                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
                   </div>
                 </div>
               </label>
 
-              <div className="w-px h-4 bg-slate-700"></div>
-
-              <label className={`cursor-pointer px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.moat
+              {/* 2. Moat */}
+              <label className={`cursor-pointer px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.moat
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
                 : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300 border border-transparent'
                 }`}>
@@ -165,28 +187,60 @@ export default function CalculatorPage() {
                 <div className="group relative ml-1 cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
                   护城河
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                    拥有高转换成本，用户难以离开：例如苹果生态、微信关系链、高端白酒成瘾性
+                    拥有高转换成本，用户难以离开（如生态、成瘾性）
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                  </div>
+                </div>
+              </label>
+
+              {/* 3. Financial Safety */}
+              <label className={`cursor-pointer px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.financial_safety
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300 border border-transparent'
+                }`}>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={confirmations.financial_safety}
+                  onChange={(e) => setConfirmations({ ...confirmations, financial_safety: e.target.checked })}
+                />
+                <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${confirmations.financial_safety ? 'border-emerald-500 bg-emerald-500' : 'border-slate-500'
+                  }`}>
+                  {confirmations.financial_safety && <div className="w-1 h-1 bg-slate-900 rounded-full" />}
+                </div>
+                <div className="group relative ml-1 cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
+                  财务安全
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    现金储备充足，无偿债风险（现金 &gt; 有息负债）
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                  </div>
+                </div>
+              </label>
+
+              {/* 4. Shareholder Returns */}
+              <label className={`cursor-pointer px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center gap-2 select-none ${confirmations.shareholder_returns
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300 border border-transparent'
+                }`}>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={confirmations.shareholder_returns}
+                  onChange={(e) => setConfirmations({ ...confirmations, shareholder_returns: e.target.checked })}
+                />
+                <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${confirmations.shareholder_returns ? 'border-emerald-500 bg-emerald-500' : 'border-slate-500'
+                  }`}>
+                  {confirmations.shareholder_returns && <div className="w-1 h-1 bg-slate-900 rounded-full" />}
+                </div>
+                <div className="group relative ml-1 cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
+                  股东回报
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    注重股东回报，有稳定的分红或回购计划
                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
                   </div>
                 </div>
               </label>
             </div>
-
-            {/* Analyze Button */}
-            <button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="h-[42px] px-6 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center min-w-[120px]"
-            >
-              {isAnalyzing ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-              ) : (
-                <>
-                  分析
-                  <BarChart3 className="w-3.5 h-3.5 ml-1.5" />
-                </>
-              )}
-            </button>
           </div>
         </div>
 
