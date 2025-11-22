@@ -385,8 +385,16 @@ class GreedyHunterCalculatorV2:
         ma50 = hist_data['Close'].tail(50).mean() if len(hist_data) >= 50 else current_price
         ma200 = hist_data['Close'].tail(200).mean() if len(hist_data) >= 200 else current_price
         
-        # 120日最高价（约6个月前高）
-        high_120d = hist_data['High'].tail(120).max() if len(hist_data) >= 120 else current_price
+        # 120日最高价（约6个月前高）及其日期
+        if len(hist_data) >= 120:
+            last_120d = hist_data.tail(120)
+            high_120d = last_120d['High'].max()
+            high_120d_idx = last_120d['High'].idxmax()
+            high_120d_date = last_120d.loc[high_120d_idx, 'Date']
+            high_120d_date_str = high_120d_date.strftime("%Y-%m-%d") if hasattr(high_120d_date, 'strftime') else str(high_120d_date)
+        else:
+            high_120d = current_price
+            high_120d_date_str = None
         
         # 判断左右侧
         if current_price > ma50 and current_price > ma200:
@@ -412,7 +420,8 @@ class GreedyHunterCalculatorV2:
         return TechnicalAnalysis(
             ma50=ma50,
             ma200=ma200,
-            high_120d=high_120d,  # 新增：120日最高价
+            high_120d=high_120d,  # 120日最高价
+            high_120d_date=high_120d_date_str,  # 120日最高价日期
             trading_side=trading_side,
             trading_description=trading_desc,
             max_drawdown=max_drawdown,
@@ -440,22 +449,22 @@ class GreedyHunterCalculatorV2:
         ROBUST_WHITELIST = ["SPY", "QQQ", "VOO", "IVV", "BRK.B", "BRK.A"]
         
         if symbol.upper() in ROBUST_WHITELIST:
-            return ("稳健档", 0.04, "宽基指数/顶级控股")
+            return ("稳健策略", 0.04, "宽基指数/顶级控股")
         
         # 判断市值阈值：2000亿美元 = 200 Billion = 2e11
         market_cap_threshold = 2e11  # 2000亿美元
         
         if not market_cap or market_cap < market_cap_threshold:
             # 魔鬼档：市值 < 2000亿 (15.0%)
-            return ("魔鬼档", 0.15, "小市值/高风险")
+            return ("魔鬼策略", 0.15, "小市值/高风险")
         
         # 市值 >= 2000亿，根据回撤判断
         if abs(max_drawdown) < 0.50:  # 回撤 < 50%
             # 标准档 (7.5%)
-            return ("标准档", 0.075, "大市值/低回撤")
+            return ("标准策略", 0.075, "大市值/低回撤")
         else:
             # 激进档：回撤 >= 50% (10.0%)
-            return ("激进档", 0.10, "大市值/高回撤")
+            return ("波动策略", 0.10, "大市值/高回撤")
     
     def _generate_pyramid_strategy(
         self,

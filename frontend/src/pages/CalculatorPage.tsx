@@ -57,7 +57,7 @@ export default function CalculatorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4 font-sans text-slate-300">
+    <div className="min-h-screen bg-slate-900 font-sans text-slate-300">
       <div className="mx-auto space-y-8">
         {/* Header & Wisdom Module */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -326,6 +326,37 @@ export default function CalculatorPage() {
                 <div className="w-1 h-1 bg-slate-500 rounded-full"></div>
                 <span>安全价 = 内在估值 ${result.pricing.intrinsic_value} × 品质系数 {result.pricing.quality_coefficient} × 市场折扣系数 {result.pricing.market_discount}</span>
               </div>
+              
+              {/* 120日前高跌幅警告 - 重要风险提示 */}
+              {(() => {
+                const high120d = result.technical_analysis.high_120d;
+                const high120dDate = result.technical_analysis.high_120d_date;
+                const current = result.current_price;
+                const dropPercent = ((high120d - current) / high120d * 100);
+                
+                if (dropPercent < 15 && dropPercent >= 0) {
+                  return (
+                    <div className="mt-4 p-4 bg-red-500/10 border-l-4 border-l-red-500 rounded-r-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-red-400 mb-1">
+                            ⚠️ 重要风险提示：距120日前高仅跌{dropPercent.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-red-300/80 space-y-1">
+                            <div>
+                              120日前高：<span className="font-mono font-semibold">${high120d.toFixed(2)}</span>
+                              {high120dDate && <span className="ml-2 text-red-300/60">({high120dDate})</span>}
+                            </div>
+                            <div>不符合首仓安全阈值（需跌幅≥15%）。建议等待更大回撤空间，避免追高风险。</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* 2. Company Overview */}
@@ -373,27 +404,6 @@ export default function CalculatorPage() {
                   <div className="text-4xl font-mono font-bold text-white tracking-tight">
                     ${result.current_price.toFixed(2)}
                   </div>
-                  
-                  {/* 120日前高跌幅警告 */}
-                  {(() => {
-                    const high120d = result.technical_analysis.high_120d;
-                    const current = result.current_price;
-                    const dropPercent = ((high120d - current) / high120d * 100);
-                    
-                    if (dropPercent < 15 && dropPercent >= 0) {
-                      return (
-                        <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-                          <div className="text-xs text-red-400 font-medium">
-                            ⚠️ 距120日前高仅跌{dropPercent.toFixed(1)}%
-                          </div>
-                          <div className="text-[10px] text-red-300/70 mt-0.5">
-                            不符合首仓安全阈值（需跌幅≥15%）
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
 
@@ -737,9 +747,9 @@ export default function CalculatorPage() {
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
                     <div className="relative group">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold cursor-help ${result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                        result.grid_tier_info.tier_name === '标准档' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                          result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold cursor-help ${result.grid_tier_info.tier_name === '稳健策略' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                        result.grid_tier_info.tier_name === '标准策略' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                          result.grid_tier_info.tier_name === '波动策略' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
                             'bg-red-500/20 text-red-300 border border-red-500/30'
                         }`}>
                         {result.grid_tier_info.tier_name}
@@ -747,32 +757,32 @@ export default function CalculatorPage() {
                       
                       {/* Hover Tooltip - 档位说明 */}
                       <div className="absolute bottom-full right-0 mb-2 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 min-w-[320px]">
-                        <div className="text-xs font-bold text-white mb-2 border-b border-slate-700 pb-2">金字塔网格档位分级</div>
+                        <div className="text-xs font-bold text-white mb-2 border-b border-slate-700 pb-2">金字塔网格建仓策略分级</div>
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-blue-300 font-medium">稳健档</span>
+                              <span className="text-blue-300 font-medium">稳健策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔4%）</span>
                             </div>
                             <span className="text-slate-400 text-[10px] ml-2">宽基指数/顶级控股</span>
                           </div>
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-emerald-300 font-medium">标准档</span>
+                              <span className="text-emerald-300 font-medium">标准策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔7.5%）</span>
                             </div>
-                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 回撤&lt;50%</span>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&lt;50%</span>
                           </div>
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-orange-300 font-medium">激进档</span>
+                              <span className="text-orange-300 font-medium">波动策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔10%）</span>
                             </div>
-                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 回撤&gt;50%</span>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&gt;50%</span>
                           </div>
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-red-300 font-medium">魔鬼档</span>
+                              <span className="text-red-300 font-medium">魔鬼策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔15%）</span>
                             </div>
                             <span className="text-slate-400 text-[10px] ml-2">市值&lt;2000亿（一票否决）</span>

@@ -103,6 +103,7 @@ class TechnicalAnalysis(BaseModel):
     ma50: float = Field(..., description="50日均线")
     ma200: float = Field(..., description="200日均线")
     high_120d: float = Field(..., description="120日最高价")
+    high_120d_date: Optional[str] = Field(None, description="120日最高价日期")
     trading_side: str = Field(..., description="左侧/右侧交易")
     trading_description: str = Field(..., description="交易方式说明")
     max_drawdown: float = Field(..., description="最大回撤")
