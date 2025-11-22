@@ -2,8 +2,8 @@
  * 建仓计算器 V2 - 8分制质量评分系统
  */
 
-import { useState } from 'react'
-import { Search, AlertTriangle, Target, BarChart3 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw } from 'lucide-react'
 import axios from 'axios'
 
 // 定义类型
@@ -59,7 +59,7 @@ export default function CalculatorPage() {
   return (
     <div className="min-h-screen bg-slate-900 p-4 font-sans text-slate-300">
       <div className="mx-auto space-y-8">
-        {/* Header */}
+        {/* Header & Wisdom Module */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
@@ -72,11 +72,10 @@ export default function CalculatorPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center bg-slate-800/50 rounded-full px-4 py-1.5 border border-slate-700/50">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2"></span>
-            <span className="text-xs font-medium text-emerald-400">
-              别人贪婪我恐惧，别人恐惧我贪婪
-            </span>
+
+          {/* Investment Wisdom Module */}
+          <div className="flex-1 md:max-w-xl">
+            <WisdomModule />
           </div>
         </div>
 
@@ -589,6 +588,62 @@ export default function CalculatorPage() {
 }
 
 // === 辅助组件 ===
+
+const INVESTMENT_QUOTES = [
+  "别人贪婪我恐惧，别人恐惧我贪婪",
+  "90%的投资问题来自于建仓",
+  "买入价格越低，安全边际越高",
+  "耐心是投资中最昂贵的品质",
+  "在最悲观的时候买入，在最乐观的时候卖出",
+  "市场短期是投票机，长期是称重机",
+  "模糊的正确远胜于精确的错误",
+  "风险来自于你不知道自己在做什么"
+]
+
+function WisdomModule() {
+  const [quote, setQuote] = useState('')
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const refreshQuote = () => {
+    setIsAnimating(true)
+    const randomQuote = INVESTMENT_QUOTES[Math.floor(Math.random() * INVESTMENT_QUOTES.length)]
+    setQuote(randomQuote)
+    setTimeout(() => setIsAnimating(false), 500)
+  }
+
+  useEffect(() => {
+    refreshQuote()
+  }, [])
+
+  return (
+    <div className="relative group w-full">
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+      <div className="relative flex items-center justify-between bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-3 pr-4 hover:border-slate-600 transition-all">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium flex items-center gap-1">
+              巴菲特投资智慧
+            </span>
+            <p className={`text-sm text-slate-200 font-medium truncate transition-all duration-500 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
+              {quote}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={refreshQuote}
+          className="ml-3 p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-800 transition-all active:rotate-180 duration-500"
+          title="换一句"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 
 function getTierColor(tier: string) {
