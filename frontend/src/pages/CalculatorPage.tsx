@@ -273,12 +273,12 @@ export default function CalculatorPage() {
                     </div>
                     <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
                       <span className="text-slate-500">高点:</span>
-                      <span className="font-mono text-right">
+                      <span className="font-mono text-left">
                         {result.technical_analysis.max_drawdown_peak_date} <span className="text-slate-200">${result.technical_analysis.max_drawdown_peak_price?.toFixed(2)}</span>
                       </span>
 
                       <span className="text-slate-500">低点:</span>
-                      <span className="font-mono text-right">
+                      <span className="font-mono text-left">
                         {result.technical_analysis.max_drawdown_valley_date} <span className="text-slate-200">${result.technical_analysis.max_drawdown_valley_price?.toFixed(2)}</span>
                       </span>
                     </div>

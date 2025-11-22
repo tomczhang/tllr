@@ -107,6 +107,10 @@ class TechnicalAnalysis(BaseModel):
     max_drawdown: float = Field(..., description="最大回撤")
     max_drawdown_date: str = Field(..., description="最大回撤日期")
     max_drawdown_warning: str = Field(..., description="回撤警示")
+    max_drawdown_peak_date: Optional[str] = Field(None, description="最大回撤峰值日期")
+    max_drawdown_peak_price: Optional[float] = Field(None, description="最大回撤峰值价格")
+    max_drawdown_valley_date: Optional[str] = Field(None, description="最大回撤谷底日期")
+    max_drawdown_valley_price: Optional[float] = Field(None, description="最大回撤谷底价格")
 
 
 class PyramidLevel(BaseModel):
