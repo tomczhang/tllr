@@ -147,7 +147,9 @@ class YFinanceService:
             url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
             params = {
                 "modules": modules,
-                "crumb": crumb
+                "crumb": crumb,
+                "lang": "zh-CN",
+                "region": "CN"
             }
             
             response = self.session.get(url, params=params, timeout=15)
@@ -285,10 +287,17 @@ class YFinanceService:
     def calculate_max_drawdown(df: pd.DataFrame) -> Dict[str, Any]:
         """
         计算最大回撤 (MDD)
-        返回：最大回撤比例和日期
+        返回：最大回撤比例和日期，以及峰值和谷底详情
         """
         if df is None or df.empty:
-            return {"max_drawdown": 0, "date": None}
+            return {
+                "max_drawdown": 0, 
+                "date": None,
+                "peak_date": None,
+                "peak_price": None,
+                "valley_date": None,
+                "valley_price": None
+            }
         
         # 计算累计最高价
         df['cummax'] = df['Close'].cummax()
@@ -296,15 +305,27 @@ class YFinanceService:
         # 计算回撤
         df['drawdown'] = (df['Close'] - df['cummax']) / df['cummax']
         
-        # 找到最大回撤
-        max_dd_idx = df['drawdown'].idxmin()
-        max_drawdown = df.loc[max_dd_idx, 'drawdown']
-        max_dd_date = df.loc[max_dd_idx, 'Date']
+        # 找到最大回撤点（谷底）
+        valley_idx = df['drawdown'].idxmin()
+        max_drawdown = df.loc[valley_idx, 'drawdown']
+        valley_date = df.loc[valley_idx, 'Date']
+        valley_price = df.loc[valley_idx, 'Close']
+        
+        # 找到对应的峰值点
+        # 在谷底之前，找到价格等于 cummax 的最后一天
+        peak_data = df.loc[:valley_idx]
+        peak_idx = peak_data[peak_data['Close'] == peak_data.loc[valley_idx, 'cummax']].index[-1]
+        peak_date = df.loc[peak_idx, 'Date']
+        peak_price = df.loc[peak_idx, 'Close']
         
         return {
             "max_drawdown": abs(float(max_drawdown)),
             "max_drawdown_percent": abs(float(max_drawdown)) * 100,
-            "date": max_dd_date.strftime("%Y-%m-%d") if hasattr(max_dd_date, 'strftime') else str(max_dd_date)
+            "date": valley_date.strftime("%Y-%m-%d") if hasattr(valley_date, 'strftime') else str(valley_date),
+            "peak_date": peak_date.strftime("%Y-%m-%d") if hasattr(peak_date, 'strftime') else str(peak_date),
+            "peak_price": float(peak_price),
+            "valley_date": valley_date.strftime("%Y-%m-%d") if hasattr(valley_date, 'strftime') else str(valley_date),
+            "valley_price": float(valley_price)
         }
     
     @retry_on_error(max_retries=3, delay=2)

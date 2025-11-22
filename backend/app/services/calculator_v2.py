@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from app.services.yahoo_direct import get_yahoo_service
+from app.services.yfinance_srv import get_yfinance_service
 from app.services.yahoo_financial import get_financial_service
 from app.schemas.stock_v2 import (
     AnalysisResultV2,
@@ -46,7 +46,7 @@ class GreedyHunterCalculatorV2:
     }
     
     def __init__(self):
-        self.yf_service = get_yahoo_service()
+        self.yf_service = get_yfinance_service()
         self.financial_service = get_financial_service()
     
     def analyze_stock(
