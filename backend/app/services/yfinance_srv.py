@@ -147,7 +147,7 @@ class YFinanceService:
         
         try:
             # 请求财务数据和基本信息
-            modules = "price,summaryDetail,defaultKeyStatistics,financialData"
+            modules = "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile"
             url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
             params = {
                 "modules": modules,
@@ -174,6 +174,7 @@ class YFinanceService:
             # 提取数据
             price_data = quote_data.get("price", {})
             summary = quote_data.get("summaryDetail", {})
+            asset_profile = quote_data.get("assetProfile", {})
             
             def safe_get(data_dict, default=None):
                 """安全获取 raw 值"""
@@ -194,11 +195,36 @@ class YFinanceService:
                 except Exception as e:
                     logger.warning(f"市值转换失败 {symbol}: {e}，使用原始值")
             
+            # 行业翻译映射
+            SECTOR_MAPPING = {
+                "Technology": "科技",
+                "Financial Services": "金融服务",
+                "Consumer Cyclical": "周期性消费",
+                "Healthcare": "医疗保健",
+                "Communication Services": "通讯服务",
+                "Energy": "能源",
+                "Industrials": "工业",
+                "Consumer Defensive": "防御性消费",
+                "Basic Materials": "基础材料",
+                "Real Estate": "房地产",
+                "Utilities": "公用事业",
+                "Financials": "金融",
+                "Information Technology": "信息技术",
+                "Consumer Discretionary": "非必需消费",
+                "Consumer Staples": "必需消费",
+                "Health Care": "医疗保健",
+                "Materials": "材料",
+                "Telecommunication Services": "电信服务"
+            }
+
+            raw_sector = asset_profile.get("sector")
+            translated_sector = SECTOR_MAPPING.get(raw_sector, raw_sector)
+
             return {
                 "symbol": symbol,
                 "company_name": price_data.get("longName") or price_data.get("shortName") or symbol,
-                "sector": safe_get(price_data.get("sector")),
-                "industry": safe_get(price_data.get("industry")),
+                "sector": translated_sector,
+                "industry": asset_profile.get("industry"),
                 "market_cap": market_cap_usd,  # 统一为USD
                 "market_cap_original": market_cap,  # 保留原始值
                 "current_price": safe_get(price_data.get("regularMarketPrice")),
