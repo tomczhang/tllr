@@ -905,7 +905,7 @@ export default function CalculatorPage() {
               </div>
               <div className="mt-4 text-xs text-slate-500 flex items-center">
                 <div className="w-1 h-1 bg-slate-500 rounded-full mr-2"></div>
-                金字塔网格逻辑：网格价格 = 上级价格 × (1 - 跌幅率)
+                金字塔网格逻辑：网格价格 = 上次买入价格 × (1 - 跌幅率)
               </div>
             </div>
           </div>
