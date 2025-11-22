@@ -57,8 +57,8 @@ export default function CalculatorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4 md:p-8 font-sans text-slate-300">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-900 p-4 font-sans text-slate-300">
+      <div className="mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -68,7 +68,7 @@ export default function CalculatorPage() {
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">建仓计算器</h2>
               <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mt-0.5">
-                Greedy Hunter V2
+                结合公司内在估值和所属市场，智能计算安全建仓点
               </p>
             </div>
           </div>
@@ -191,11 +191,11 @@ export default function CalculatorPage() {
               {isAnalyzing ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
-                  正在分析数据...
+                  正在获得猎杀数据...
                 </>
               ) : (
                 <>
-                  开始智能分析
+                  开启智能分析
                   <BarChart3 className="w-4 h-4 ml-2" />
                 </>
               )}
