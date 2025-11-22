@@ -110,10 +110,13 @@ class GreedyHunterCalculatorV2:
             current_price=current_price
         )
         
-        # 8. 生成金字塔策略
+        # 8. 生成金字塔策略（基于档位分级矩阵）
         pyramid_strategy = self._generate_pyramid_strategy(
-            pricing.safe_buy_price,
-            current_price
+            safe_buy_price=pricing.safe_buy_price,
+            current_price=current_price,
+            symbol=symbol,
+            market_cap=stock_info.market_cap,
+            max_drawdown=technical_analysis.max_drawdown
         )
         
         # 9. 生成建议
@@ -414,37 +417,84 @@ class GreedyHunterCalculatorV2:
             max_drawdown_valley_price=mdd_result.get("valley_price")
         )
     
+    def _determine_grid_tier(
+        self,
+        symbol: str,
+        market_cap: Optional[float],
+        max_drawdown: float
+    ) -> tuple[str, float, str]:
+        """
+        确定档位分级
+        
+        Returns:
+            (档位名称, 加仓间隔比例, 档位描述)
+        """
+        # 白名单：稳健档 (4.0%)
+        ROBUST_WHITELIST = ["SPY", "QQQ", "VOO", "IVV", "BRK.B", "BRK.A"]
+        
+        if symbol.upper() in ROBUST_WHITELIST:
+            return ("稳健档", 0.04, "宽基指数/顶级控股")
+        
+        # 判断市值阈值：2000亿美元 = 200 Billion = 2e11
+        market_cap_threshold = 2e11  # 2000亿美元
+        
+        if not market_cap or market_cap < market_cap_threshold:
+            # 魔鬼档：市值 < 2000亿 (15.0%)
+            return ("魔鬼档", 0.15, "小市值/高风险")
+        
+        # 市值 >= 2000亿，根据回撤判断
+        if abs(max_drawdown) < 0.50:  # 回撤 < 50%
+            # 标准档 (7.5%)
+            return ("标准档", 0.075, "大市值/低回撤")
+        else:
+            # 激进档：回撤 >= 50% (10.0%)
+            return ("激进档", 0.10, "大市值/高回撤")
+    
     def _generate_pyramid_strategy(
         self,
         safe_buy_price: float,
-        current_price: float
+        current_price: float,
+        symbol: str = "",
+        market_cap: Optional[float] = None,
+        max_drawdown: float = -0.5
     ) -> List[PyramidLevel]:
-        """生成金字塔网格策略（6步）"""
+        """
+        生成金字塔网格策略（6步）
+        根据档位分级矩阵动态计算加仓间隔
+        """
+        # 确定档位和加仓间隔
+        tier_name, gap_rate, tier_desc = self._determine_grid_tier(symbol, market_cap, max_drawdown)
+        
+        logger.info(f"📊 档位判定: {tier_name} ({tier_desc}), 加仓间隔: {gap_rate*100:.1f}%")
+        
+        # 金字塔资金分配比例（6步）
         steps = [
-            (0.05, "第1步：试探性建仓"),
-            (0.10, "第2步：确认趋势"),
-            (0.15, "第3步：加大仓位"),
-            (0.25, "第4步：重仓布局"),
-            (0.25, "第5步：极度低估"),
-            (0.20, "第6步：底部抄底")
+            (0.05, "试探性建仓"),
+            (0.10, "确认趋势"),
+            (0.15, "加大仓位"),
+            (0.25, "重仓布局"),
+            (0.25, "极度低估"),
+            (0.20, "底部抄底")
         ]
         
         pyramid = []
+        current_level_price = safe_buy_price
+        
         for i, (percentage, desc) in enumerate(steps, 1):
-            # 每一步在安全价基础上再打折
-            discount_factor = 1 - (i - 1) * 0.05
-            level_price = safe_buy_price * discount_factor
+            # 第一步使用安全价，后续每步下跌 gap_rate
+            if i > 1:
+                current_level_price = current_level_price * (1 - gap_rate)
             
             # 判断状态
-            if current_price <= level_price:
-                status_desc = f"✅ {desc}（已触发）"
+            if current_price <= current_level_price:
+                status_desc = f"✅ 第{i}步：{desc}（已触发）"
             else:
-                gap = ((current_price - level_price) / level_price) * 100
-                status_desc = f"⏳ {desc}（需下跌{gap:.1f}%）"
+                gap = ((current_price - current_level_price) / current_level_price) * 100
+                status_desc = f"⏳ 第{i}步：{desc}（需下跌{gap:.1f}%）"
             
             pyramid.append(PyramidLevel(
                 level=i,
-                price=level_price,
+                price=current_level_price,
                 percentage=percentage,
                 description=status_desc
             ))
