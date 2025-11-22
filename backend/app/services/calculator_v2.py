@@ -23,6 +23,7 @@ from app.schemas.stock_v2 import (
     PricingAnalysis,
     TechnicalAnalysis,
     PyramidLevel,
+    GridTierInfo,
     UserConfirmations
 )
 
@@ -111,7 +112,7 @@ class GreedyHunterCalculatorV2:
         )
         
         # 8. 生成金字塔策略（基于档位分级矩阵）
-        pyramid_strategy = self._generate_pyramid_strategy(
+        grid_tier_info, pyramid_strategy = self._generate_pyramid_strategy(
             safe_buy_price=pricing.safe_buy_price,
             current_price=current_price,
             symbol=symbol,
@@ -139,6 +140,7 @@ class GreedyHunterCalculatorV2:
             market_analysis=market_analysis,
             pricing=pricing,
             technical_analysis=technical_analysis,
+            grid_tier_info=grid_tier_info,
             pyramid_strategy=pyramid_strategy,
             recommendation=recommendation,
             risk_warning=risk_warning,
@@ -457,15 +459,30 @@ class GreedyHunterCalculatorV2:
         symbol: str = "",
         market_cap: Optional[float] = None,
         max_drawdown: float = -0.5
-    ) -> List[PyramidLevel]:
+    ) -> tuple[GridTierInfo, List[PyramidLevel]]:
         """
         生成金字塔网格策略（6步）
         根据档位分级矩阵动态计算加仓间隔
+        
+        Returns:
+            (档位信息, 金字塔策略列表)
         """
         # 确定档位和加仓间隔
         tier_name, gap_rate, tier_desc = self._determine_grid_tier(symbol, market_cap, max_drawdown)
         
         logger.info(f"📊 档位判定: {tier_name} ({tier_desc}), 加仓间隔: {gap_rate*100:.1f}%")
+        
+        # 构建判定原因
+        market_cap_yi = (market_cap / 1e8) if market_cap else 0
+        judgment_reason = self._build_judgment_reason(tier_name, market_cap_yi, max_drawdown)
+        
+        # 创建档位信息对象
+        grid_tier_info = GridTierInfo(
+            tier_name=tier_name,
+            gap_rate=gap_rate,
+            tier_description=tier_desc,
+            judgment_reason=judgment_reason
+        )
         
         # 金字塔资金分配比例（6步）
         # 份数: 1:1:1.5:2:2:2.5 (总计10份)
@@ -500,7 +517,23 @@ class GreedyHunterCalculatorV2:
                 description=status_desc
             ))
         
-        return pyramid
+        return grid_tier_info, pyramid
+    
+    def _build_judgment_reason(
+        self,
+        tier_name: str,
+        market_cap_yi: float,
+        max_drawdown: float
+    ) -> str:
+        """构建档位判定原因"""
+        if tier_name == "稳健档":
+            return "白名单股票（宽基指数或顶级控股）"
+        elif tier_name == "魔鬼档":
+            return f"市值{market_cap_yi:.0f}亿USD < 2000亿USD（一票否决）"
+        elif tier_name == "标准档":
+            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} < 50%"
+        else:  # 激进档
+            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} ≥ 50%"
     
     def _generate_recommendation(
         self,

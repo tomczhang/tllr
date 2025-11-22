@@ -602,9 +602,26 @@ export default function CalculatorPage() {
                   <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
                   金字塔网格策略
                 </h3>
-                <span className="text-xs text-slate-500 font-mono">
-                  Total Units: 10
-                </span>
+                
+                {/* 档位信息 - 右上角 */}
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                      result.grid_tier_info.tier_name === '标准档' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                      result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                      'bg-red-500/20 text-red-300 border border-red-500/30'
+                    }`}>
+                      {result.grid_tier_info.tier_name}
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">
+                      间隔 {(result.grid_tier_info.gap_rate * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {result.grid_tier_info.judgment_reason}
+                  </span>
+                </div>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-slate-700/50">

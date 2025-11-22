@@ -121,6 +121,14 @@ class PyramidLevel(BaseModel):
     description: str = Field(..., description="状态描述")
 
 
+class GridTierInfo(BaseModel):
+    """金字塔网格档位信息"""
+    tier_name: str = Field(..., description="档位名称")
+    gap_rate: float = Field(..., description="加仓间隔比例")
+    tier_description: str = Field(..., description="档位描述")
+    judgment_reason: str = Field(..., description="判定原因")
+
+
 class StockInfoV2(BaseModel):
     """股票基础信息"""
     symbol: str
@@ -142,6 +150,7 @@ class AnalysisResultV2(BaseModel):
     pricing: PricingAnalysis = Field(..., description="定价分析")
     technical_analysis: TechnicalAnalysis = Field(..., description="技术分析")
     
+    grid_tier_info: GridTierInfo = Field(..., description="金字塔网格档位信息")
     pyramid_strategy: List[PyramidLevel] = Field(..., description="金字塔网格策略")
     recommendation: str = Field(..., description="投资建议")
     risk_warning: str = Field(..., description="风险警示")
