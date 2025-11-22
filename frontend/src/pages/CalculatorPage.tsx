@@ -68,7 +68,7 @@ export default function CalculatorPage() {
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">建仓计算器</h2>
               <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mt-0.5">
-                结合公司内在估值和所属市场，智能计算安全建仓点
+                结合公司内在估值和所属市场，<span className="text-emerald-400">智能</span>计算<span className="text-emerald-400">安全</span>建仓点
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function CalculatorPage() {
                   type="text"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value)}
-                  placeholder="1810.HK"
+                  placeholder="0700.HK/META/1810.SZ"
                   className="w-full bg-slate-900/80 border border-slate-600 rounded-lg px-3 py-2.5 pl-9 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all uppercase font-mono"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
@@ -100,7 +100,15 @@ export default function CalculatorPage() {
 
             {/* Intrinsic Value */}
             <div className="flex-1 w-full lg:w-auto min-w-[140px]">
-              <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">内在价值</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">
+                <div className="group relative inline-block cursor-help border-b border-dashed border-slate-500/50 hover:border-emerald-400/50 transition-colors">
+                  内在价值
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    企业在剩余生命中可以产生的现金流的折现值
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                  </div>
+                </div>
+              </label>
               <div className="relative group">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-sm group-hover:text-emerald-400 transition-colors">$</span>
                 <input
@@ -223,7 +231,7 @@ export default function CalculatorPage() {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Current Price</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">当前股价</div>
                   <div className="text-4xl font-mono font-bold text-white tracking-tight">
                     ${result.current_price.toFixed(2)}
                   </div>
@@ -231,22 +239,43 @@ export default function CalculatorPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-700/50">
-                <div>
-                  <div className="text-xs text-slate-500 mb-1">Market Cap</div>
-                  <div className="text-lg font-mono font-medium text-slate-200">
-                    {result.stock_info.market_cap
-                      ? `$${(result.stock_info.market_cap / 1e9).toFixed(1)}B`
-                      : 'N/A'}
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1">总市值</div>
+                    <div className="text-lg font-mono font-medium text-slate-200">
+                      {result.stock_info.market_cap
+                        ? result.stock_info.market_cap >= 1e12
+                          ? `${(result.stock_info.market_cap / 1e12).toFixed(2)}万亿美元`
+                          : `${(result.stock_info.market_cap / 1e8).toFixed(0)}亿美元`
+                        : 'N/A'}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500 mb-1">Max Drawdown (10Y)</div>
+                <div className="relative group cursor-help">
+                  <div className="text-xs text-slate-500 mb-1 border-b border-dashed border-slate-500/30 inline-block">近10年最大回撤</div>
                   <div className="text-lg font-mono font-medium text-red-400">
                     {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
                   </div>
+
+                  {/* Max Drawdown Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 min-w-[200px]">
+                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-700">
+                      <span className="font-bold text-white">近10年最大回撤详情</span>
+                    </div>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+                      <span className="text-slate-500">高点:</span>
+                      <span className="font-mono text-right">
+                        {result.technical_analysis.max_drawdown_peak_date} <span className="text-slate-200">${result.technical_analysis.max_drawdown_peak_price?.toFixed(2)}</span>
+                      </span>
+
+                      <span className="text-slate-500">低点:</span>
+                      <span className="font-mono text-right">
+                        {result.technical_analysis.max_drawdown_valley_date} <span className="text-slate-200">${result.technical_analysis.max_drawdown_valley_price?.toFixed(2)}</span>
+                      </span>
+                    </div>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                  </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 mb-1">Quality Score</div>
+                  <div className="text-xs text-slate-500 mb-1">公司质量评分</div>
                   <div className="flex items-baseline space-x-1">
                     <span className={`text-xl font-bold ${getTierColor(result.quality_assessment.tier)}`}>
                       {result.quality_assessment.total_score}
@@ -255,7 +284,7 @@ export default function CalculatorPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 mb-1">Intrinsic Value</div>
+                  <div className="text-xs text-slate-500 mb-1">估算内在价值</div>
                   <div className="text-lg font-mono font-medium text-blue-400">
                     ${result.pricing.intrinsic_value}
                   </div>
@@ -603,11 +632,15 @@ const INVESTMENT_QUOTES = [
 function WisdomModule() {
   const [quote, setQuote] = useState('')
   const [isAnimating, setIsAnimating] = useState(false)
+  const [, setCurrentIndex] = useState(() => Math.floor(Math.random() * INVESTMENT_QUOTES.length))
 
   const refreshQuote = () => {
     setIsAnimating(true)
-    const randomQuote = INVESTMENT_QUOTES[Math.floor(Math.random() * INVESTMENT_QUOTES.length)]
-    setQuote(randomQuote)
+    setCurrentIndex((prev) => {
+      const next = (prev + 1) % INVESTMENT_QUOTES.length
+      setQuote(INVESTMENT_QUOTES[next])
+      return next
+    })
     setTimeout(() => setIsAnimating(false), 500)
   }
 

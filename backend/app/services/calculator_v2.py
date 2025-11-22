@@ -407,7 +407,11 @@ class GreedyHunterCalculatorV2:
             trading_description=trading_desc,
             max_drawdown=max_drawdown,
             max_drawdown_date=max_drawdown_date,
-            max_drawdown_warning=mdd_warning
+            max_drawdown_warning=mdd_warning,
+            max_drawdown_peak_date=mdd_result.get("peak_date"),
+            max_drawdown_peak_price=mdd_result.get("peak_price"),
+            max_drawdown_valley_date=mdd_result.get("valley_date"),
+            max_drawdown_valley_price=mdd_result.get("valley_price")
         )
     
     def _generate_pyramid_strategy(

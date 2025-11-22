@@ -28,10 +28,10 @@ export default function Layout() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">贪婪猎人</h1>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">Greedy Hunter</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider">做最贪婪的价值投资者</p>
               </div>
             </div>
-            
+
             {/* User Info */}
             <div className="flex items-center space-x-4">
               <div className="text-right hidden sm:block">
@@ -61,11 +61,10 @@ export default function Layout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg border transition-all ${
-                    isActive
+                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg border transition-all ${isActive
                       ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-glow-emerald'
                       : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="text-sm font-medium">{item.label}</span>
