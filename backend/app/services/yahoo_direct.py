@@ -20,10 +20,8 @@ class YahooDirectAPI:
     
     def __init__(self):
         self.session = requests.Session()
-        self.session.proxies = {
-            'http': 'http://127.0.0.1:7890',
-            'https': 'http://127.0.0.1:7890',
-        }
+        # 不使用代理，直接连接
+        self.session.proxies = {}
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
         })

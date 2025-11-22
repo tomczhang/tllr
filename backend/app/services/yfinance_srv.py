@@ -60,11 +60,8 @@ class YFinanceService:
             "Upgrade-Insecure-Requests": "1",
         })
         
-        # 3. 配置代理
-        self.session.proxies = {
-            'http': 'http://127.0.0.1:7890',
-            'https': 'http://127.0.0.1:7890',
-        }
+        # 3. 配置代理（不使用代理）
+        self.session.proxies = {}
         
         # 4. Crumb缓存
         self.crumb = None

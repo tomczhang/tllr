@@ -35,10 +35,7 @@ class CurrencyConverter:
         try:
             # 使用 Yahoo Finance 的汇率查询
             session = requests.Session()
-            session.proxies = {
-                'http': 'http://127.0.0.1:7890',
-                'https': 'http://127.0.0.1:7890',
-            }
+            session.proxies = {}
             session.headers.update({
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })

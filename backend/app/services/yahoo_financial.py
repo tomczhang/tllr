@@ -50,12 +50,9 @@ class YahooFinancialService:
     """Yahoo Finance 财务数据服务（自动握手版）"""
     
     def __init__(self):
-        # 创建自定义session以支持代理
+        # 创建自定义session（不使用代理）
         self.session = requests.Session()
-        self.session.proxies = {
-            'http': 'http://127.0.0.1:7890',
-            'https': 'http://127.0.0.1:7890',
-        }
+        self.session.proxies = {}
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
