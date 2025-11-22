@@ -255,7 +255,74 @@ export default function CalculatorPage() {
         {/* Analysis Result */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* 1. Company Overview */}
+            {/* 1. Analysis Report */}
+            <div className={`card-glass p-6 border-l-4 ${result.pricing.price_gap_percent <= 0
+              ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
+              : 'border-l-red-500 shadow-[0_0_20px_rgba(248,113,113,0.05)]'
+              }`}>
+
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                {/* Dynamic Icon (Left) */}
+                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center border-4 flex-shrink-0 ${result.pricing.price_gap_percent <= 0
+                  ? 'border-emerald-500/20 bg-emerald-500/5'
+                  : 'border-red-500/20 bg-red-500/5'
+                  }`}>
+                  {result.pricing.price_gap_percent <= 0 ? (
+                    <Target className="w-10 h-10 text-emerald-500" />
+                  ) : (
+                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                  )}
+                  {/* Pulse Ring */}
+                  <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${result.pricing.price_gap_percent <= 0 ? 'bg-emerald-500' : 'bg-red-500'
+                    }`}></div>
+                </div>
+
+                {/* Right Content */}
+                <div className="flex-1 w-full text-center md:text-left">
+                  {/* Conclusion Title */}
+                  <h2 className={`text-4xl font-bold mb-1 ${result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {result.pricing.price_gap_percent <= 0 ? '贪婪时刻' : '太贵了'}
+                  </h2>
+                  <p className="text-slate-400 text-sm mb-4">
+                    {result.pricing.price_gap_percent <= 0
+                      ? '股价已进入安全边际范围，投资性价比较高'
+                      : '股价偏离安全边际，建议耐心等待更好的击球点'}
+                  </p>
+
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-3 gap-4 bg-slate-900/40 rounded-xl p-4 border border-slate-700/30">
+                    <div>
+                      <div className="text-slate-500 text-xs mb-1">当前溢价率</div>
+                      <div className={`text-xl font-bold font-mono ${result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {result.pricing.price_gap_percent > 0 ? '+' : ''}{result.pricing.price_gap_percent.toFixed(1)}%
+                      </div>
+                    </div>
+
+                    <div className="border-l border-slate-700/50 pl-4">
+                      <div className="text-slate-500 text-xs mb-1">安全建仓价</div>
+                      <div className="text-xl font-bold font-mono text-white">
+                        ${result.pricing.safe_buy_price.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div className="border-l border-slate-700/50 pl-4">
+                      <div className="text-slate-500 text-xs mb-1">需调整空间</div>
+                      <div className="text-xl font-bold font-mono text-slate-300">
+                        ${(result.current_price - result.pricing.safe_buy_price).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Formula Explanation */}
+              <div className="mt-4 flex items-center justify-center md:justify-start gap-2 text-xs text-slate-500">
+                <div className="w-1 h-1 bg-slate-500 rounded-full"></div>
+                <span>安全价 = 内在估值 ${result.pricing.intrinsic_value} × 品质系数 {result.pricing.quality_coefficient} × 市场折扣系数 {result.pricing.market_discount}</span>
+              </div>
+            </div>
+
+            {/* 2. Company Overview */}
             <div className="card-glass p-6 relative overflow-hidden">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
@@ -353,102 +420,6 @@ export default function CalculatorPage() {
                   <div className="text-lg font-mono font-bold text-blue-400">
                     ${result.pricing.intrinsic_value}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Analysis Report */}
-            <div className={`card-glass p-6 border-l-4 ${result.pricing.price_gap_percent <= 0
-              ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
-              : 'border-l-red-500 shadow-[0_0_20px_rgba(248,113,113,0.05)]'
-              }`}>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="section-title mb-0">
-                  <BarChart3 className="section-title-icon mr-2" />
-                  分析报告
-                </h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${result.pricing.price_gap_percent <= 0
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                  }`}>
-                  {result.pricing.price_gap_percent <= 0 ? '建议建仓' : '等待回调'}
-                </span>
-              </div>
-
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                {/* Icon Circle */}
-                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center border-4 ${result.pricing.price_gap_percent <= 0
-                  ? 'border-emerald-500/20 bg-emerald-500/5'
-                  : 'border-red-500/20 bg-red-500/5'
-                  }`}>
-                  {result.pricing.price_gap_percent <= 0 ? (
-                    <Target className="w-10 h-10 text-emerald-500" />
-                  ) : (
-                    <AlertTriangle className="w-10 h-10 text-red-500" />
-                  )}
-                  {/* Pulse Ring */}
-                  <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${result.pricing.price_gap_percent <= 0 ? 'bg-emerald-500' : 'bg-red-500'
-                    }`}></div>
-                </div>
-
-                <div className="flex-1 w-full">
-                  <div className="flex items-end justify-between mb-2">
-                    <span className="text-slate-400 text-sm">当前溢价率</span>
-                    <span className={`text-3xl font-bold font-mono ${result.pricing.price_gap_percent <= 0 ? 'text-emerald-400' : 'text-red-400'
-                      }`}>
-                      {result.pricing.price_gap_percent > 0 ? '+' : ''}{result.pricing.price_gap_percent.toFixed(1)}%
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden mb-4 relative">
-                    {/* Center Marker */}
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-500 z-10"></div>
-                    {/* Bar */}
-                    <div
-                      className={`h-full rounded-full transition-all duration-1000 ${result.pricing.price_gap_percent <= 0 ? 'bg-emerald-500' : 'bg-red-500'
-                        }`}
-                      style={{
-                        width: `${Math.min(Math.abs(result.pricing.price_gap_percent), 100)}%`,
-                        marginLeft: result.pricing.price_gap_percent <= 0 ? '50%' : 'auto',
-                        marginRight: result.pricing.price_gap_percent <= 0 ? 'auto' : '50%',
-                        transform: result.pricing.price_gap_percent <= 0 ? 'translateX(-100%)' : 'none'
-                      }}
-                    ></div>
-                  </div>
-                  {/* Correction: The bar logic above is a bit complex to get right with just width/margins. 
-                    Let's simplify: If negative (good), fill from center to left. If positive (bad), fill from center to right.
-                    Actually, let's just use a simple bar for now.
-                */}
-                  <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden relative">
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-600 z-20"></div>
-                    {result.pricing.price_gap_percent <= 0 ? (
-                      <div
-                        className="absolute top-0 bottom-0 right-1/2 bg-emerald-500 transition-all duration-1000"
-                        style={{ width: `${Math.min(Math.abs(result.pricing.price_gap_percent), 50)}%` }}
-                      ></div>
-                    ) : (
-                      <div
-                        className="absolute top-0 bottom-0 left-1/2 bg-red-500 transition-all duration-1000"
-                        style={{ width: `${Math.min(Math.abs(result.pricing.price_gap_percent), 50)}%` }}
-                      ></div>
-                    )}
-                  </div>
-
-
-                  <div className="flex justify-between text-xs text-slate-500 mt-2">
-                    <span>安全建仓价: <span className="text-emerald-400 font-mono">${result.pricing.safe_buy_price.toFixed(2)}</span></span>
-                    <span>需调整: <span className="text-white font-mono">${(result.current_price - result.pricing.safe_buy_price).toFixed(2)}</span></span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 text-sm text-slate-400 flex items-start">
-                <div className="mt-0.5 mr-2 text-blue-400">💡</div>
-                <div>
-                  安全价 = 内在估值 <span className="text-slate-300 font-mono">${result.pricing.intrinsic_value}</span> ×
-                  品质系数 <span className="text-slate-300 font-mono">{result.pricing.quality_coefficient}</span> ×
-                  市场折扣 <span className="text-slate-300 font-mono">{result.pricing.market_discount}</span>
                 </div>
               </div>
             </div>
@@ -602,16 +573,15 @@ export default function CalculatorPage() {
                   <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
                   金字塔网格策略
                 </h3>
-                
+
                 {/* 档位信息 - 右上角 */}
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${result.grid_tier_info.tier_name === '稳健档' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
                       result.grid_tier_info.tier_name === '标准档' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                      result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                      'bg-red-500/20 text-red-300 border border-red-500/30'
-                    }`}>
+                        result.grid_tier_info.tier_name === '激进档' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                          'bg-red-500/20 text-red-300 border border-red-500/30'
+                      }`}>
                       {result.grid_tier_info.tier_name}
                     </span>
                     <span className="text-xs font-mono text-slate-400">
