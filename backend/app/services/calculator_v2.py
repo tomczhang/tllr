@@ -387,11 +387,11 @@ class GreedyHunterCalculatorV2:
         
         # 判断左右侧
         if current_price > ma50 and current_price > ma200:
-            trading_side = "右侧交易"
-            trading_desc = "价格在均线上方，顺势而为"
+            trading_side = "右侧交易时刻"
+            trading_desc = "价格未站稳均线，请甘愿踏空，放弃抄底的执念；趋势确认后，请带好止损果断上车"
         else:
-            trading_side = "左侧交易"
-            trading_desc = "价格在均线下方，逆向布局"
+            trading_side = "左侧交易时刻"
+            trading_desc = "价格在均线下方，请务必管住手，严格执行您的网格，不要在没有信号时随意加仓"
         
         # MDD
         mdd_result = self.yf_service.calculate_max_drawdown(hist_data)

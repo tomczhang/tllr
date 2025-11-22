@@ -644,31 +644,55 @@ export default function CalculatorPage() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="section-title mb-0 text-base font-bold text-white">
                   <div className="w-1.5 h-5 bg-purple-500 rounded-full mr-2"></div>
-                  定价分析
+                  安全建仓价分析
                 </h3>
-                <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">
-                  中波动（标准成长）
+                <span className={`text-xs px-2 py-1 rounded border ${
+                  (() => {
+                    const mdd = result.technical_analysis.max_drawdown;
+                    
+                    // 根据波动性返回颜色
+                    if (mdd > 0.5) return 'text-red-400 bg-red-500/10 border-red-500/20';
+                    if (mdd > 0.3) return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+                    return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+                  })()
+                }`}>
+                  {(() => {
+                    const mdd = result.technical_analysis.max_drawdown;
+                    const tier = result.quality_assessment.tier;
+                    
+                    // 波动性描述
+                    const volatility = mdd > 0.5 ? '高波动' : mdd > 0.3 ? '中波动' : '低波动';
+                    
+                    // 质量描述
+                    let qualityDesc = '';
+                    if (tier === 'S') qualityDesc = '皇冠明珠';
+                    else if (tier === 'A') qualityDesc = '优质蓝筹';
+                    else if (tier === 'B') qualityDesc = '平庸/成长型';
+                    else if (tier === 'C') qualityDesc = '高风险';
+                    
+                    return `${volatility}（${qualityDesc}）`;
+                  })()}
                 </span>
               </div>
 
               <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-sm">
                 <div className="text-center">
-                  <div className="text-slate-400 mb-1">Intrinsic Value</div>
+                  <div className="text-slate-400 mb-1">内在估值价格</div>
                   <div className="text-xl font-mono font-bold text-blue-400">${result.pricing.intrinsic_value}</div>
                 </div>
                 <div className="text-slate-600 font-bold text-lg">×</div>
                 <div className="text-center">
-                  <div className="text-slate-400 mb-1">Quality Coeff</div>
+                  <div className="text-slate-400 mb-1">公司品质系数</div>
                   <div className="text-xl font-mono font-bold text-emerald-400">{result.pricing.quality_coefficient}</div>
                 </div>
                 <div className="text-slate-600 font-bold text-lg">×</div>
                 <div className="text-center">
-                  <div className="text-slate-400 mb-1">Market Discount</div>
+                  <div className="text-slate-400 mb-1">市场折扣系数</div>
                   <div className="text-xl font-mono font-bold text-purple-400">{result.pricing.market_discount}</div>
                 </div>
                 <div className="text-slate-600 font-bold text-lg">=</div>
                 <div className="text-center p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                  <div className="text-emerald-400 text-xs mb-1 uppercase tracking-wider">Safe Buy Price</div>
+                  <div className="text-emerald-400 text-xs mb-1 uppercase tracking-wider">安全建仓价</div>
                   <div className="text-2xl font-mono font-bold text-white">${result.pricing.safe_buy_price.toFixed(2)}</div>
                 </div>
               </div>
@@ -677,7 +701,6 @@ export default function CalculatorPage() {
                 {result.market_analysis.is_hk_s_tier && (
                   <span className="text-emerald-400 mr-2">✨ 港股S级享受流动性豁免 (0.85)</span>
                 )}
-                <span>Based on 10Y Max Drawdown: {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%</span>
               </div>
             </div>
 
