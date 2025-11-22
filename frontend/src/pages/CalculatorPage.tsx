@@ -306,9 +306,15 @@ export default function CalculatorPage() {
                     </div>
 
                     <div className="border-l border-slate-700/50 pl-4">
-                      <div className="text-slate-500 text-xs mb-1">需调整空间</div>
-                      <div className="text-xl font-bold font-mono text-slate-300">
-                        ${(result.current_price - result.pricing.safe_buy_price).toFixed(2)}
+                      <div className="text-slate-500 text-xs mb-1">
+                        {result.current_price - result.pricing.safe_buy_price < 0 ? '安全边际空间' : '还需耐心等待'}
+                      </div>
+                      <div className={`text-xl font-bold font-mono ${
+                        result.current_price - result.pricing.safe_buy_price < 0 
+                          ? 'text-emerald-400' 
+                          : 'text-red-400'
+                      }`}>
+                        ${Math.abs(result.current_price - result.pricing.safe_buy_price).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -425,19 +431,47 @@ export default function CalculatorPage() {
             </div>
 
             {/* 3. Quality Score */}
-            <div className="card-glass p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="section-title mb-0">
-                  <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
-                  8点质量评分
-                </h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${result.quality_assessment.tier === 'S' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                  result.quality_assessment.tier === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                    'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  }`}>
-                  {result.quality_assessment.tier}级 • {result.quality_assessment.total_score}/8分
-                </span>
-              </div>
+              <div className="card-glass p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="section-title mb-0 text-base font-bold text-white">
+                    <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
+                    8点质量评分
+                  </h3>
+                  
+                  {/* 等级徽章 - 带hover提示 */}
+                  <div className="group relative inline-block cursor-help">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${result.quality_assessment.tier === 'S' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                      result.quality_assessment.tier === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      }`}>
+                      {result.quality_assessment.tier}级 • {result.quality_assessment.total_score}/8分
+                    </span>
+                    
+                    {/* Hover Tooltip */}
+                    <div className="absolute bottom-full right-0 mb-2 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 min-w-[280px]">
+                      <div className="text-xs font-bold text-white mb-2 border-b border-slate-700 pb-2">质量评分等级与品质系数</div>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-purple-300">S级 (7-8分)</span>
+                          <span className="font-mono text-slate-300">× 0.95 <span className="text-slate-500 ml-1">皇冠明珠</span></span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-emerald-300">A级 (5-6分)</span>
+                          <span className="font-mono text-slate-300">× 0.85 <span className="text-slate-500 ml-1">优质蓝筹</span></span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-blue-300">B级 (3-4分)</span>
+                          <span className="font-mono text-slate-300">× 0.70 <span className="text-slate-500 ml-1">平庸/成长</span></span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-red-300">C级 (0-2分)</span>
+                          <span className="font-mono text-slate-300">× 0.50 <span className="text-slate-500 ml-1">高风险</span></span>
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-1 right-4 w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45"></div>
+                    </div>
+                  </div>
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Left: Automated */}
@@ -527,7 +561,7 @@ export default function CalculatorPage() {
             {/* 4. Pricing Analysis */}
             <div className="card-glass p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="section-title mb-0">
+                <h3 className="section-title mb-0 text-base font-bold text-white">
                   <div className="w-1.5 h-5 bg-purple-500 rounded-full mr-2"></div>
                   定价分析
                 </h3>
@@ -569,7 +603,7 @@ export default function CalculatorPage() {
             {/* 5. Pyramid Strategy */}
             <div className="card-glass p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="section-title mb-0">
+                <h3 className="section-title mb-0 text-base font-bold text-white">
                   <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
                   金字塔网格策略
                 </h3>

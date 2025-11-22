@@ -315,7 +315,7 @@ class GreedyHunterCalculatorV2:
         for (min_score, max_score), (tier, desc, coeff) in self.TIER_MAPPING.items():
             if min_score <= score <= max_score:
                 return tier, desc, coeff
-        return "C", "垃圾/高危", 0.50
+        return "C", "高风险", 0.50
     
     def _analyze_market(self, symbol: str, tier: str) -> MarketAnalysis:
         """市场分析（判断市场，应用折扣系数）"""
