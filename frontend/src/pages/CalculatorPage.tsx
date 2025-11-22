@@ -208,22 +208,32 @@ export default function CalculatorPage() {
 
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 relative z-10">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-3xl font-bold text-white tracking-tight">
-                      {result.stock_info.company_name || result.symbol}
-                    </h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${result.quality_assessment.tier === 'S' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                  <a
+                    href={`https://finance.yahoo.com/quote/${result.symbol}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-3xl font-bold text-white tracking-tight hover:text-emerald-400 transition-colors mb-2"
+                  >
+                    {result.stock_info.company_name || result.symbol}
+                  </a>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Symbol Tag */}
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                      {result.symbol}
+                    </span>
+
+                    {/* Tier Tag */}
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${result.quality_assessment.tier === 'S' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                       result.quality_assessment.tier === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                         'bg-blue-500/10 text-blue-400 border-blue-500/20'
                       }`}>
                       {result.quality_assessment.tier} 级
                     </span>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-slate-400">
-                    <span className="font-mono bg-slate-800/50 px-2 py-0.5 rounded text-slate-300">{result.symbol}</span>
+
+                    {/* Sector Tag */}
                     {result.stock_info.sector && (
-                      <span className="flex items-center">
-                        <span className="w-1 h-1 rounded-full bg-slate-600 mr-2"></span>
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-800/50 text-slate-400 border border-slate-700/50">
                         {result.stock_info.sector}
                       </span>
                     )}
@@ -239,19 +249,19 @@ export default function CalculatorPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-700/50">
-                  <div>
-                    <div className="text-xs text-slate-500 mb-1">总市值</div>
-                    <div className="text-lg font-mono font-medium text-slate-200">
-                      {result.stock_info.market_cap
-                        ? result.stock_info.market_cap >= 1e12
-                          ? `${(result.stock_info.market_cap / 1e12).toFixed(2)}万亿美元`
-                          : `${(result.stock_info.market_cap / 1e8).toFixed(0)}亿美元`
-                        : 'N/A'}
-                    </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">总市值</div>
+                  <div className="text-lg font-mono font-bold text-slate-200">
+                    {result.stock_info.market_cap
+                      ? result.stock_info.market_cap >= 1e12
+                        ? `${(result.stock_info.market_cap / 1e12).toFixed(2)}万亿美元`
+                        : `${(result.stock_info.market_cap / 1e8).toFixed(0)}亿美元`
+                      : 'N/A'}
                   </div>
+                </div>
                 <div className="relative group cursor-help">
                   <div className="text-xs text-slate-500 mb-1 border-b border-dashed border-slate-500/30 inline-block">近10年最大回撤</div>
-                  <div className="text-lg font-mono font-medium text-red-400">
+                  <div className="text-lg font-mono font-bold text-red-400">
                     {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
                   </div>
 
@@ -280,12 +290,12 @@ export default function CalculatorPage() {
                     <span className={`text-xl font-bold ${getTierColor(result.quality_assessment.tier)}`}>
                       {result.quality_assessment.total_score}
                     </span>
-                    <span className="text-sm text-slate-500">/ 8</span>
+                    <span className="text-sm font-bold text-slate-500">/ 8</span>
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500 mb-1">估算内在价值</div>
-                  <div className="text-lg font-mono font-medium text-blue-400">
+                  <div className="text-lg font-mono font-bold text-blue-400">
                     ${result.pricing.intrinsic_value}
                   </div>
                 </div>

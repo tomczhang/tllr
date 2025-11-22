@@ -11,6 +11,7 @@ import time
 import random
 from functools import wraps
 from datetime import datetime
+from app.services.currency_converter import get_currency_converter
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -70,6 +71,9 @@ class YFinanceService:
         # 5. 请求计数器
         self.request_count = 0
         self.last_request_time = 0
+        
+        # 6. 货币转换器
+        self.currency_converter = get_currency_converter()
 
     def _rate_limit(self):
         """请求限流：确保请求间隔至少 1-2 秒"""
@@ -177,14 +181,28 @@ class YFinanceService:
                     return data_dict.get("raw", default)
                 return data_dict if data_dict is not None else default
             
+            # 提取货币和市值
+            currency = price_data.get("currency", "USD")
+            market_cap = safe_get(price_data.get("marketCap"))
+            
+            # 如果市值不是USD，转换为USD
+            market_cap_usd = market_cap
+            if market_cap and currency != "USD":
+                try:
+                    market_cap_usd = self.currency_converter.convert_to_usd(market_cap, currency)
+                    logger.info(f"✅ 市值转换: {market_cap:,.0f} {currency} → ${market_cap_usd:,.0f} USD")
+                except Exception as e:
+                    logger.warning(f"市值转换失败 {symbol}: {e}，使用原始值")
+            
             return {
                 "symbol": symbol,
                 "company_name": price_data.get("longName") or price_data.get("shortName") or symbol,
                 "sector": safe_get(price_data.get("sector")),
                 "industry": safe_get(price_data.get("industry")),
-                "market_cap": safe_get(price_data.get("marketCap")),
+                "market_cap": market_cap_usd,  # 统一为USD
+                "market_cap_original": market_cap,  # 保留原始值
                 "current_price": safe_get(price_data.get("regularMarketPrice")),
-                "currency": price_data.get("currency", "USD"),
+                "currency": currency,  # 保留原始货币信息
             }
             
         except Exception as e:
