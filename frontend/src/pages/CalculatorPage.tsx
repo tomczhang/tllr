@@ -771,7 +771,7 @@ export default function CalculatorPage() {
                       <th className="text-left text-xs font-medium text-slate-400 py-3 px-4">网格价格</th>
                       <th className="text-left text-xs font-medium text-slate-400 py-3 px-4">跌幅</th>
                       <th className="text-left text-xs font-medium text-slate-400 py-3 px-4">买入份数</th>
-                      <th className="text-left text-xs font-medium text-slate-400 py-3 px-4">建议</th>
+                      <th className="text-left text-xs font-medium text-slate-400 py-3 px-4">战术指标</th>
                       <th className="text-right text-xs font-medium text-slate-400 py-3 px-4">累计仓位</th>
                     </tr>
                   </thead>
@@ -785,6 +785,20 @@ export default function CalculatorPage() {
                       for (let i = 0; i <= idx; i++) {
                         cumulativePosition += result.pyramid_strategy[i].percentage * 100
                       }
+
+                      // 计算累计回撤百分比（相对于安全建仓价）
+                      const cumulativeDrawdown = ((result.pricing.safe_buy_price - level.price) / result.pricing.safe_buy_price * 100).toFixed(1)
+                      
+                      // 计算均价拉低百分比
+                      let weightedSum = 0
+                      let totalShares = 0
+                      for (let i = 0; i <= idx; i++) {
+                        const shares = result.pyramid_strategy[i].percentage * 10 / 0.1
+                        weightedSum += result.pyramid_strategy[i].price * shares
+                        totalShares += shares
+                      }
+                      const avgCost = totalShares > 0 ? weightedSum / totalShares : level.price
+                      const avgCostReduction = ((result.pricing.safe_buy_price - avgCost) / result.pricing.safe_buy_price * 100).toFixed(1)
 
                       return (
                         <tr key={idx} className={`hover:bg-slate-800/30 transition-colors ${isTriggered ? 'bg-emerald-500/5' : ''
@@ -802,12 +816,14 @@ export default function CalculatorPage() {
                             {((level.percentage * 10) / 0.1).toFixed(1)}
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${isTriggered
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-slate-800 text-slate-500 border border-slate-700'
-                              }`}>
-                              {idx === 0 ? '首次建仓' : `加仓`}
-                            </span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs text-slate-400">
+                                回撤: <span className="text-red-400 font-mono">-{cumulativeDrawdown}%</span>
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                降本: <span className="text-emerald-400 font-mono">-{avgCostReduction}%</span>
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
