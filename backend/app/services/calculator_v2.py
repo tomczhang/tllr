@@ -1,6 +1,6 @@
 """
 贪婪猎人核心算法 V2 - 8点质量评分体系
-完全自动化（2项）+ 半自动化（4项）+ 完全人工（2项）
+完全自动化（4项）+ 完全人工（4项）
 """
 
 from typing import Dict, List, Any, Optional
@@ -160,16 +160,26 @@ class GreedyHunterCalculatorV2:
         assisted_metrics = []
         soft_metrics = []
         
-        # ========== 完全自动化指标（2项）==========
+        # ========== 完全自动化指标（4项）==========
         
-        # 1. 市值规模
+        # 1. 市值规模（已在API层转换为USD）
         market_cap = financial_data.get("market_cap")
         market_cap_passed = market_cap is not None and market_cap > 200_000_000_000
+        
+        # 显示格式：亿美元（与总市值一致）
+        if market_cap:
+            if market_cap >= 1e12:
+                market_cap_display = f"{market_cap/1e12:.2f}万亿美元"
+            else:
+                market_cap_display = f"{market_cap/1e8:.0f}亿美元"
+        else:
+            market_cap_display = "无数据"
+        
         hard_metrics.append(HardMetric(
             name="市值规模",
             key="market_cap",
             value=market_cap,
-            value_display=f"${market_cap/1e9:.1f}B" if market_cap else "无数据",
+            value_display=market_cap_display,
             threshold=">2000亿美元",
             passed=market_cap_passed,
             points=1 if market_cap_passed else 0
@@ -188,41 +198,33 @@ class GreedyHunterCalculatorV2:
             points=1 if listing_years_passed else 0
         ))
         
-        # ========== 半自动化指标（4项）==========
-        
-        # 3. 毛利率
+        # 3. 毛利率（自动化）
         gross_margins = financial_data.get("gross_margins")
-        gm_suggestion = gross_margins is not None and gross_margins > 0.4
-        gm_user_confirmed = user_confirmations.gross_margin if user_confirmations.gross_margin is not None else gm_suggestion
-        assisted_metrics.append(AssistedMetric(
+        gm_passed = gross_margins is not None and gross_margins > 0.4
+        hard_metrics.append(HardMetric(
             name="毛利率",
             key="gross_margin",
             value=gross_margins,
             value_display=f"{gross_margins*100:.1f}%" if gross_margins else "无数据",
             threshold=">40%",
-            raw_data={"gross_margins": gross_margins},
-            system_suggestion=gm_suggestion,
-            user_confirmed=gm_user_confirmed,
-            passed=gm_user_confirmed,
-            points=1 if gm_user_confirmed else 0
+            passed=gm_passed,
+            points=1 if gm_passed else 0
         ))
         
-        # 4. ROE
+        # 4. ROE（自动化）
         roe = financial_data.get("return_on_equity")
-        roe_suggestion = roe is not None and roe > 0.15
-        roe_user_confirmed = user_confirmations.roe if user_confirmations.roe is not None else roe_suggestion
-        assisted_metrics.append(AssistedMetric(
+        roe_passed = roe is not None and roe > 0.15
+        hard_metrics.append(HardMetric(
             name="净资产收益率",
             key="roe",
             value=roe,
             value_display=f"{roe*100:.1f}%" if roe else "无数据",
             threshold=">15%",
-            raw_data={"return_on_equity": roe},
-            system_suggestion=roe_suggestion,
-            user_confirmed=roe_user_confirmed,
-            passed=roe_user_confirmed,
-            points=1 if roe_user_confirmed else 0
+            passed=roe_passed,
+            points=1 if roe_passed else 0
         ))
+        
+        # ========== 完全人工指标（4项）==========
         
         # 5. 财务安全
         total_cash = financial_data.get("total_cash")
@@ -231,8 +233,9 @@ class GreedyHunterCalculatorV2:
         fs_suggestion = total_cash is not None and total_debt is not None and total_cash > total_debt
         fs_user_confirmed = user_confirmations.financial_safety if user_confirmations.financial_safety is not None else fs_suggestion
         
-        cash_display = f"${total_cash/1e9:.1f}B" if total_cash else "无数据"
-        debt_display = f"${total_debt/1e9:.1f}B" if total_debt else "无数据"
+        # 统一使用"亿美元"格式
+        cash_display = f"{total_cash/1e8:.0f}亿美元" if total_cash else "无数据"
+        debt_display = f"{total_debt/1e8:.0f}亿美元" if total_debt else "无数据"
         
         assisted_metrics.append(AssistedMetric(
             name="财务安全",
@@ -257,7 +260,7 @@ class GreedyHunterCalculatorV2:
         if dividend_rate > 0:
             returns_display.append(f"分红率{dividend_rate*100:.2f}%")
         if buyback_amount > 0:
-            returns_display.append(f"回购${buyback_amount/1e9:.1f}B")
+            returns_display.append(f"回购{buyback_amount/1e8:.0f}亿美元")
         
         assisted_metrics.append(AssistedMetric(
             name="股东回报",
@@ -272,13 +275,11 @@ class GreedyHunterCalculatorV2:
             points=1 if sr_user_confirmed else 0
         ))
         
-        # ========== 完全人工指标（2项）==========
-        
         # 7. 行业地位
         soft_metrics.append(SoftMetric(
             name="行业地位",
             key="industry_dominance",
-            description="是否行业老大或双寡头",
+            description="要求行业老大或双寡头",
             user_confirmed=user_confirmations.industry_dominance,
             passed=user_confirmations.industry_dominance,
             points=1 if user_confirmations.industry_dominance else 0

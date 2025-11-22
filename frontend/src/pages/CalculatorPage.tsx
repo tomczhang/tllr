@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw, ArrowUpRight } from 'lucide-react'
+import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw, ArrowUpRight, Activity, TrendingDown, Info } from 'lucide-react'
 import axios from 'axios'
 
 // 定义类型
@@ -473,86 +473,163 @@ export default function CalculatorPage() {
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Left: Automated */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left: Automated Metrics */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-semibold text-slate-400 flex items-center uppercase tracking-wider">
-                    完全自动化
-                    <span className="ml-2 text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">AUTO</span>
+                    自动化分析 (4项)
                   </h4>
                   <div className="space-y-2">
                     {result.quality_assessment.hard_metrics.map((m: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+                      <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        m.passed 
+                          ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50' 
+                          : 'bg-red-500/5 border-red-500/30 hover:border-red-500/50'
+                      }`}>
                         <div className="flex-1 min-w-0 mr-2">
-                          <div className="text-sm text-slate-200 truncate">{m.name}</div>
-                          <div className="text-xs text-slate-500 truncate font-mono mt-0.5">{m.value_display}</div>
+                          <div className={`text-sm font-medium truncate`}>
+                            {m.name}
+                          </div>
+                          <div className={`text-xs font-mono mt-0.5 flex items-center gap-2 ${m.passed ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <span className="truncate">{m.value_display}</span>
+                            <span className="text-slate-500 flex-shrink-0">要求: {m.threshold}</span>
+                          </div>
                         </div>
-                        <div className={`px-2 py-1 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {m.points}
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${
+                          m.passed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                        }`}>
+                          {m.passed ? '✓' : '✗'}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Middle: Assisted */}
+                {/* Right: Manual Metrics */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-semibold text-slate-400 flex items-center uppercase tracking-wider">
-                    半自动化
-                    <span className="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">AI</span>
+                    认知判断 (4项)
                   </h4>
                   <div className="space-y-2">
+                    {/* 财务安全和股东回报（现在属于人工判断） */}
                     {result.quality_assessment.assisted_metrics.map((m: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+                      <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        m.passed 
+                          ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50' 
+                          : 'bg-red-500/5 border-red-500/30 hover:border-red-500/50'
+                      }`}>
                         <div className="flex-1 min-w-0 mr-2">
-                          <div className="text-sm text-slate-200 truncate">{m.name}</div>
-                          <div className="text-xs text-slate-500 truncate font-mono mt-0.5">{m.value_display}</div>
+                          <div className={`text-sm font-medium truncate`}>
+                            {m.name}
+                          </div>
+                          <div className={`text-xs font-mono mt-0.5 flex items-center gap-2 ${m.passed ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <span className="truncate">{m.value_display}</span>
+                            <span className="text-slate-500 flex-shrink-0">
+                              要求: {m.threshold}
+                            </span>
+                          </div>
                         </div>
-                        <div className={`px-2 py-1 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {m.points}
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${
+                          m.passed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                        }`}>
+                          {m.passed ? '✓' : '✗'}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* 行业地位和护城河 */}
+                    {result.quality_assessment.soft_metrics.map((m: any, idx: number) => (
+                      <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        m.passed 
+                          ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50' 
+                          : 'bg-red-500/5 border-red-500/30 hover:border-red-500/50'
+                      }`}>
+                        <div className="flex-1 min-w-0 mr-2">
+                          <div className="text-sm font-medium truncate">{m.name}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            要求: 用户自行判断
+                          </div>
+                        </div>
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${
+                          m.passed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                        }`}>
+                          {m.passed ? '✓' : '✗'}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Right: Manual */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-400 flex items-center uppercase tracking-wider">
-                    完全人工
-                    <span className="ml-2 text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">USER</span>
-                  </h4>
-                  <div className="space-y-2">
-                    {result.quality_assessment.soft_metrics.map((m: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
-                        <div className="flex-1 min-w-0 mr-2">
-                          <div className="text-sm text-slate-200 truncate">{m.name}</div>
-                          <div className="text-xs text-slate-500 truncate mt-0.5">{m.description}</div>
-                        </div>
-                        <div className={`px-2 py-1 rounded text-xs font-bold ${m.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {m.points}
-                        </div>
-                      </div>
-                    ))}
+            {/* Technical Analysis - 独立部分 */}
+            <div className="card-glass p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="section-title mb-0 text-base font-bold text-white">
+                  <div className="w-1.5 h-5 bg-blue-500 rounded-full mr-2"></div>
+                  技术分析
+                </h3>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium border ${
+                  result.technical_analysis.trading_side === '左侧交易' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                }`}>
+                  {result.technical_analysis.trading_side}
+                </span>
+              </div>
 
-                    {/* Technical Analysis Box */}
-                    <div className="p-3 bg-blue-500/5 rounded-lg border border-blue-500/10 mt-2">
-                      <div className="text-[10px] text-blue-400 uppercase tracking-wider mb-2">Technical Analysis</div>
-                      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                        <div>
-                          <span className="text-slate-500">MA50</span>
-                          <div className="text-slate-200 font-mono">${result.technical_analysis.ma50.toFixed(0)}</div>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">MA200</span>
-                          <div className="text-slate-200 font-mono">${result.technical_analysis.ma200.toFixed(0)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-blue-500/10">
-                        <span className="text-slate-400">Trend</span>
-                        <span className="text-blue-400 font-medium">{result.technical_analysis.trading_side}</span>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* MA50 */}
+                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase tracking-wider">50日均线</span>
+                    <Activity className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-bold text-white mb-1">
+                    ${result.technical_analysis.ma50.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    当前价格{result.current_price > result.technical_analysis.ma50 ? '高于' : '低于'}MA50
+                  </div>
+                </div>
+
+                {/* MA200 */}
+                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase tracking-wider">200日均线</span>
+                    <Activity className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-bold text-white mb-1">
+                    ${result.technical_analysis.ma200.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    当前价格{result.current_price > result.technical_analysis.ma200 ? '高于' : '低于'}MA200
+                  </div>
+                </div>
+
+                {/* 最大回撤 */}
+                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase tracking-wider">近10年最大回撤</span>
+                    <TrendingDown className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className={`text-2xl font-mono font-bold mb-1 ${
+                    result.technical_analysis.max_drawdown < -0.5 ? 'text-red-400' : 'text-yellow-400'
+                  }`}>
+                    {(result.technical_analysis.max_drawdown * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {result.technical_analysis.max_drawdown < -0.5 ? '高波动股票' : '中低波动'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 交易说明 */}
+              <div className="mt-4 p-4 bg-blue-500/5 rounded-lg border border-blue-500/10">
+                <div className="flex items-start space-x-2">
+                  <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-slate-300">
+                    {result.technical_analysis.trading_description}
                   </div>
                 </div>
               </div>
