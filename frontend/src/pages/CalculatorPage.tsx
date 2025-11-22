@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw } from 'lucide-react'
+import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw, ArrowUpRight } from 'lucide-react'
 import axios from 'axios'
 
 // 定义类型
@@ -212,9 +212,10 @@ export default function CalculatorPage() {
                     href={`https://finance.yahoo.com/quote/${result.symbol}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-3xl font-bold text-white tracking-tight hover:text-emerald-400 transition-colors mb-2"
+                    className="group/link flex items-center gap-2 text-3xl font-bold text-white tracking-tight hover:text-emerald-400 transition-colors mb-2 w-fit"
                   >
                     {result.stock_info.company_name || result.symbol}
+                    <ArrowUpRight className="w-6 h-6 text-slate-600 group-hover/link:text-emerald-400 transition-colors" />
                   </a>
 
                   <div className="flex items-center gap-2 flex-wrap">
