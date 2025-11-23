@@ -892,7 +892,7 @@ export default function CalculatorPage() {
 
             {/* 5. Pyramid Strategy */}
             <div className="card-glass p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="section-title mb-0 text-base font-bold text-white">
                   <div className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></div>
                   金字塔网格策略
@@ -950,6 +950,18 @@ export default function CalculatorPage() {
                 </div>
               </div>
 
+              {/* 重要说明 */}
+              <div className="mb-4 p-3 bg-blue-500/10 border-l-4 border-l-blue-500 rounded-r-lg">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <p className="text-xs text-blue-300">
+                    <span className="font-semibold">第一笔买入价格</span>使用您输入的内在估值 
+                    <span className="font-mono font-bold mx-1">${result.pricing.intrinsic_value.toFixed(2)}</span>
+                    （系统建议安全价 ${result.pricing.safe_buy_price.toFixed(2)} 仅供参考）
+                  </p>
+                </div>
+              </div>
+
               <div className="overflow-hidden rounded-xl border border-slate-700/50">
                 <table className="w-full text-sm">
                   <thead>
@@ -964,7 +976,9 @@ export default function CalculatorPage() {
                   <tbody className="divide-y divide-slate-700/50">
                     {result.pyramid_strategy.map((level: any, idx: number) => {
                       const isTriggered = level.description.includes('已触发')
-                      const prevPrice = idx === 0 ? result.pricing.safe_buy_price : result.pyramid_strategy[idx - 1].price
+                      // 使用金字塔策略的第一笔价格作为基准（即用户的内在估值）
+                      const firstLevelPrice = result.pyramid_strategy[0].price
+                      const prevPrice = idx === 0 ? firstLevelPrice : result.pyramid_strategy[idx - 1].price
                       const dropPercent = ((prevPrice - level.price) / prevPrice * 100).toFixed(0)
 
                       let cumulativePosition = 0
@@ -972,10 +986,10 @@ export default function CalculatorPage() {
                         cumulativePosition += result.pyramid_strategy[i].percentage * 100
                       }
 
-                      // 计算累计回撤百分比（相对于安全建仓价）
-                      const cumulativeDrawdown = ((result.pricing.safe_buy_price - level.price) / result.pricing.safe_buy_price * 100).toFixed(1)
+                      // 计算累计回撤百分比（相对于第一笔价格，即用户估值）
+                      const cumulativeDrawdown = ((firstLevelPrice - level.price) / firstLevelPrice * 100).toFixed(1)
                       
-                      // 计算均价拉低百分比
+                      // 计算均价拉低百分比（相对于第一笔价格）
                       let weightedSum = 0
                       let totalShares = 0
                       for (let i = 0; i <= idx; i++) {
@@ -984,7 +998,7 @@ export default function CalculatorPage() {
                         totalShares += shares
                       }
                       const avgCost = totalShares > 0 ? weightedSum / totalShares : level.price
-                      const avgCostReduction = ((result.pricing.safe_buy_price - avgCost) / result.pricing.safe_buy_price * 100).toFixed(1)
+                      const avgCostReduction = ((firstLevelPrice - avgCost) / firstLevelPrice * 100).toFixed(1)
                       
                       // 计算回本所需反弹幅（从当前网格价反弹到平均成本需要的涨幅）
                       const breakEvenReboundPercent = ((avgCost - level.price) / level.price * 100).toFixed(1)
