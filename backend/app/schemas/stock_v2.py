@@ -98,6 +98,33 @@ class PricingAnalysis(BaseModel):
     verdict: str = Field(..., description="价格判断")
 
 
+class ReverseDCFCheck(BaseModel):
+    """反向DCF估值预检 - 双重校验机制"""
+    # 第一重校验：市场体检（当前股价）
+    current_price: float = Field(..., description="当前股价")
+    current_price_implied_growth: Optional[float] = Field(None, description="当前股价隐含增长率（%）")
+    
+    # 第二重校验：用户估值检查（风控核心）
+    user_intrinsic_value: float = Field(..., description="用户输入的内在估值")
+    user_value_implied_growth: Optional[float] = Field(None, description="用户估值隐含增长率（%）")
+    
+    # 共享数据
+    eps_ttm: Optional[float] = Field(None, description="过去12个月EPS")
+    historical_growth_rate: Optional[float] = Field(None, description="历史平均增长率（%）")
+    
+    # 市场体检结果（展示信息）
+    market_status: str = Field(..., description="市场状态：高估/合理/低估")
+    market_message: Optional[str] = Field(None, description="市场分析信息")
+    
+    # 用户估值风控结果（拦截逻辑）
+    user_valuation_status: str = Field(..., description="用户估值状态：合理/乐观/极度乐观")
+    user_valuation_warning: Optional[str] = Field(None, description="用户估值警告信息")
+    valuation_risk_level: str = Field(..., description="风险等级：low/medium/high/critical")
+    
+    check_passed: bool = Field(True, description="是否通过预检（可能为False阻止用户）")
+    error_message: Optional[str] = Field(None, description="错误信息（如无法获取数据）")
+
+
 class TechnicalAnalysis(BaseModel):
     """技术分析（保留用于辅助判断）"""
     ma50: float = Field(..., description="50日均线")
@@ -147,6 +174,7 @@ class AnalysisResultV2(BaseModel):
     stock_info: StockInfoV2 = Field(..., description="股票基础信息")
     current_price: float = Field(..., description="当前价格")
     
+    reverse_dcf_check: Optional[ReverseDCFCheck] = Field(None, description="反向DCF估值预检")
     quality_assessment: QualityAssessment = Field(..., description="质量评估")
     market_analysis: MarketAnalysis = Field(..., description="市场分析")
     pricing: PricingAnalysis = Field(..., description="定价分析")

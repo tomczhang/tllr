@@ -24,6 +24,7 @@ from app.schemas.stock_v2 import (
     TechnicalAnalysis,
     PyramidLevel,
     GridTierInfo,
+    ReverseDCFCheck,
     UserConfirmations
 )
 
@@ -93,6 +94,14 @@ class GreedyHunterCalculatorV2:
             stock_info.market_cap = financial_data.get("market_cap")
             logger.info(f"✅ 使用 financial_data 补充市值: ${stock_info.market_cap/1e9:.1f}B")
         
+        # 4.5 反向DCF估值预检（检查用户输入的内在价值是否合理）
+        reverse_dcf_check = self._perform_reverse_dcf_check(
+            current_price=current_price,
+            intrinsic_value=intrinsic_value,
+            financial_data=financial_data,
+            hist_data=hist_data
+        )
+        
         # 5. 执行8分制质量评估
         quality_assessment = self._calculate_quality_assessment(
             symbol=symbol,
@@ -136,6 +145,7 @@ class GreedyHunterCalculatorV2:
             symbol=symbol,
             stock_info=stock_info,
             current_price=current_price,
+            reverse_dcf_check=reverse_dcf_check,
             quality_assessment=quality_assessment,
             market_analysis=market_analysis,
             pricing=pricing,
@@ -432,6 +442,340 @@ class GreedyHunterCalculatorV2:
             max_drawdown_valley_date=mdd_result.get("valley_date"),
             max_drawdown_valley_price=mdd_result.get("valley_price")
         )
+    
+    def _perform_reverse_dcf_check(
+        self,
+        current_price: float,
+        intrinsic_value: float,
+        financial_data: Dict[str, Any],
+        hist_data: pd.DataFrame
+    ) -> Optional[ReverseDCFCheck]:
+        """
+        反向DCF估值预检：双重校验机制
+        
+        第一重：市场体检（当前股价）- 展示信息
+        第二重：用户估值检查（用户输入）- 风控拦截
+        
+        算法：
+        - 使用二分搜索计算隐含增长率
+        - 公式：Price = Σ (EPS × (1+g)^n) / (1+r)^n + TerminalValue / (1+r)^10
+        - 常量：r=10%, Terminal_PE=15, 预测年限=10年
+        
+        Returns:
+            ReverseDCFCheck对象，包含双重校验结果
+        """
+        try:
+            # 1. 获取EPS（过去12个月）
+            eps_ttm = financial_data.get("eps")
+            logger.info(f"📊 反向DCF双重校验 - EPS: {eps_ttm}, 当前价格: {current_price}, 用户估值: {intrinsic_value}")
+            
+            if not eps_ttm or eps_ttm <= 0:
+                logger.warning(f"⚠️ 反向DCF检查失败：EPS数据无效 (eps={eps_ttm})")
+                return ReverseDCFCheck(
+                    current_price=current_price,
+                    current_price_implied_growth=None,
+                    user_intrinsic_value=intrinsic_value,
+                    user_value_implied_growth=None,
+                    eps_ttm=None,
+                    historical_growth_rate=None,
+                    market_status="无法判断",
+                    market_message=None,
+                    user_valuation_status="无法判断",
+                    user_valuation_warning=None,
+                    valuation_risk_level="unknown",
+                    check_passed=True,
+                    error_message="EPS数据缺失或为负，无法进行反向DCF估值检查"
+                )
+            
+            # 2. 计算历史平均增长率
+            historical_growth_rate = self._calculate_historical_growth_rate(hist_data)
+            logger.info(f"📈 历史增长率: {historical_growth_rate*100 if historical_growth_rate else None}%")
+            
+            # 3. 第一重校验：计算当前股价隐含增长率（市场体检）
+            current_price_implied_g = self._binary_search_growth_rate(
+                current_price=current_price,
+                eps=eps_ttm,
+                discount_rate=0.10,
+                terminal_pe=15,
+                years=10
+            )
+            logger.info(f"🎯 当前股价隐含增长率: {current_price_implied_g*100 if current_price_implied_g else None}%")
+            
+            # 4. 第二重校验：计算用户估值隐含增长率（风控核心）
+            user_value_implied_g = self._binary_search_growth_rate(
+                current_price=intrinsic_value,
+                eps=eps_ttm,
+                discount_rate=0.10,
+                terminal_pe=15,
+                years=10
+            )
+            logger.info(f"🎯 用户估值隐含增长率: {user_value_implied_g*100 if user_value_implied_g else None}%")
+            
+            # 5. 市场体检分析
+            market_status, market_message = self._analyze_market_valuation(
+                current_price_implied_g,
+                historical_growth_rate,
+                current_price
+            )
+            
+            # 6. 用户估值风控分析（关键！）
+            user_status, user_warning, risk_level, check_passed = self._analyze_user_valuation(
+                user_value_implied_g,
+                historical_growth_rate,
+                intrinsic_value,
+                current_price
+            )
+            
+            return ReverseDCFCheck(
+                current_price=current_price,
+                current_price_implied_growth=current_price_implied_g * 100 if current_price_implied_g else None,
+                user_intrinsic_value=intrinsic_value,
+                user_value_implied_growth=user_value_implied_g * 100 if user_value_implied_g else None,
+                eps_ttm=eps_ttm,
+                historical_growth_rate=historical_growth_rate * 100 if historical_growth_rate else None,
+                market_status=market_status,
+                market_message=market_message,
+                user_valuation_status=user_status,
+                user_valuation_warning=user_warning,
+                valuation_risk_level=risk_level,
+                check_passed=check_passed,
+                error_message=None
+            )
+            
+        except Exception as e:
+            logger.error(f"反向DCF检查失败: {str(e)}")
+            return ReverseDCFCheck(
+                current_price=current_price,
+                current_price_implied_growth=None,
+                user_intrinsic_value=intrinsic_value,
+                user_value_implied_growth=None,
+                eps_ttm=None,
+                historical_growth_rate=None,
+                market_status="检查失败",
+                market_message=None,
+                user_valuation_status="检查失败",
+                user_valuation_warning=None,
+                valuation_risk_level="unknown",
+                check_passed=True,
+                error_message=f"反向DCF检查失败: {str(e)}"
+            )
+    
+    def _binary_search_growth_rate(
+        self,
+        current_price: float,
+        eps: float,
+        discount_rate: float,
+        terminal_pe: float,
+        years: int
+    ) -> Optional[float]:
+        """
+        使用二分搜索计算隐含增长率
+        
+        公式：Price = Σ (EPS × (1+g)^n) / (1+r)^n + TerminalValue / (1+r)^years
+        其中 TerminalValue = EPS × (1+g)^years × Terminal_PE
+        """
+        # 设定搜索范围：-90% 到 300%（扩大范围以适应极端情况）
+        low, high = -0.90, 3.00
+        tolerance = 0.01  # 放宽精度到1%
+        max_iterations = 200  # 增加迭代次数
+        
+        mid = 0.0  # 初始化mid
+        pv = 0.0  # 初始化pv
+        
+        # 首先检查EPS和价格的合理性
+        simple_pe = current_price / eps
+        logger.info(f"🔍 简单PE: {simple_pe:.2f}, 当前价格: {current_price:.2f}, EPS: {eps:.2f}")
+        
+        for iteration in range(max_iterations):
+            mid = (low + high) / 2
+            
+            try:
+                # 计算DCF现值
+                pv = 0
+                for n in range(1, years + 1):
+                    future_eps = eps * ((1 + mid) ** n)
+                    discount_factor = (1 + discount_rate) ** n
+                    pv += future_eps / discount_factor
+                
+                # 计算终值
+                terminal_eps = eps * ((1 + mid) ** years)
+                terminal_value = terminal_eps * terminal_pe
+                terminal_discount = (1 + discount_rate) ** years
+                pv += terminal_value / terminal_discount
+                
+                # 判断是否收敛
+                error = abs(pv - current_price)
+                error_pct = error / current_price
+                
+                if error_pct < 0.01:  # 误差小于1%即可接受
+                    logger.info(f"✅ 二分搜索收敛: 迭代{iteration+1}次, 增长率={mid*100:.2f}%, 误差={error_pct*100:.2f}%")
+                    return mid
+                
+                # 调整搜索范围
+                if pv < current_price:
+                    low = mid
+                else:
+                    high = mid
+                    
+            except (OverflowError, ValueError) as e:
+                # 如果计算溢出，说明增长率太高
+                logger.warning(f"⚠️ 计算溢出 (g={mid*100:.1f}%): {str(e)}")
+                high = mid
+                continue
+        
+        # 如果无法精确收敛，检查最终误差是否可接受
+        final_error_pct = abs(pv - current_price) / current_price if current_price > 0 else 1.0
+        
+        if final_error_pct < 0.10:  # 误差小于10%可接受
+            logger.info(f"⚠️ 二分搜索未精确收敛，但误差可接受: 增长率={mid*100:.2f}%, 误差={final_error_pct*100:.2f}%")
+            return mid
+        
+        logger.warning(f"❌ 二分搜索失败: 最终误差={final_error_pct*100:.2f}%, PV={pv:.2f}, Price={current_price:.2f}")
+        return None
+    
+    def _calculate_historical_growth_rate(self, hist_data: pd.DataFrame) -> Optional[float]:
+        """
+        计算历史增长率（使用过去5年的价格年化增长率）
+        """
+        try:
+            if len(hist_data) < 250:  # 少于1年数据
+                return None
+            
+            # 取5年前的价格和当前价格
+            years_back = min(5, len(hist_data) // 252)
+            if years_back < 1:
+                return None
+            
+            start_price = hist_data['Close'].iloc[-(years_back * 252)]
+            end_price = hist_data['Close'].iloc[-1]
+            
+            # 计算年化增长率: (end/start)^(1/years) - 1
+            cagr = (end_price / start_price) ** (1 / years_back) - 1
+            
+            return cagr
+        except Exception as e:
+            logger.warning(f"计算历史增长率失败: {str(e)}")
+            return None
+    
+    def _analyze_market_valuation(
+        self,
+        implied_growth: Optional[float],
+        historical_growth: Optional[float],
+        current_price: float
+    ) -> tuple[str, Optional[str]]:
+        """
+        第一重校验：市场体检（分析当前股价）
+        
+        Returns:
+            (市场状态, 市场分析信息)
+        """
+        if implied_growth is None:
+            return ("无法判断", None)
+        
+        if historical_growth is None:
+            # 没有历史数据，只根据绝对增长率判断
+            if implied_growth < 0.05:
+                return ("市场极度悲观", f"💎 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，市场极度悲观，可能存在严重低估。")
+            elif implied_growth < 0.15:
+                return ("市场合理定价", f"📊 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，市场定价相对合理。")
+            else:
+                return ("市场情绪高涨", f"🔥 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，市场预期较高，需警惕泡沫风险。")
+        
+        # 有历史数据，与历史对比
+        if implied_growth > historical_growth * 1.2:
+            return ("市场过度乐观", 
+                    f"🔥 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，高于历史平均 {historical_growth*100:.1f}%，"
+                    f"市场预期可能过于乐观，存在估值泡沫风险。")
+        elif implied_growth < historical_growth * 0.5:
+            return ("市场极度悲观", 
+                    f"💎 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，远低于历史平均 {historical_growth*100:.1f}%，"
+                    f"市场极度悲观，可能是绝佳买入机会（贪婪时刻）。")
+        else:
+            return ("市场合理定价", 
+                    f"📊 当前股价 ${current_price:.2f} 隐含 {implied_growth*100:.1f}% 增长率，接近历史平均 {historical_growth*100:.1f}%，"
+                    f"市场定价相对合理，没有显著泡沫或低估。")
+    
+    def _analyze_user_valuation(
+        self,
+        user_implied_growth: Optional[float],
+        historical_growth: Optional[float],
+        user_value: float,
+        current_price: float
+    ) -> tuple[str, Optional[str], str, bool]:
+        """
+        第二重校验：用户估值风控（关键！）
+        
+        这才是风控的核心，防止用户为了想买入而故意填虚高估值。
+        
+        Returns:
+            (估值状态, 警告信息, 风险等级, 是否通过)
+        """
+        if user_implied_growth is None:
+            return ("无法判断", "无法计算用户估值隐含增长率，建议降低估值重试。", "high", False)
+        
+        value_vs_price = (user_value - current_price) / current_price * 100
+        
+        # 如果没有历史增长率，使用保守阈值
+        if historical_growth is None:
+            if user_implied_growth > 0.30:  # > 30%
+                return (
+                    "极度乐观",
+                    f"🚫 驳回！您的估值 ${user_value:.2f} 隐含 {user_implied_growth*100:.1f}% 年增长率，这是极其激进的假设。"
+                    f"系统强制拒绝，建议将估值降低至少 30%。",
+                    "critical",
+                    False
+                )
+            elif user_implied_growth > 0.20:  # 20-30%
+                return (
+                    "过度乐观",
+                    f"⚠️ 警告！您的估值 ${user_value:.2f} 隐含 {user_implied_growth*100:.1f}% 年增长率，这需要极强的增长能力。"
+                    f"请确认您对公司未来有足够信心，否则建议降低估值。",
+                    "high",
+                    True
+                )
+            else:
+                return ("合理", None, "low", True)
+        
+        # 有历史增长率，进行严格对比
+        if user_implied_growth > historical_growth * 1.3:  # 超过历史130%
+            return (
+                "极度乐观",
+                f"🚫 驳回！您的估值 ${user_value:.2f} 隐含 {user_implied_growth*100:.1f}% 年增长率，"
+                f"这超过历史平均 {historical_growth*100:.1f}% 的 {(user_implied_growth/historical_growth - 1)*100:.0f}%。"
+                f"您正在通过过度乐观的假设欺骗自己。系统建议将估值下修至 ${current_price * (1 + historical_growth * 1.2):.2f} "
+                f"(对应历史上限 {historical_growth*1.2*100:.1f}%)。",
+                "critical",
+                False
+            )
+        elif user_implied_growth > historical_growth * 1.1:  # 超过历史110%
+            return (
+                "偏乐观",
+                f"⚠️ 您的估值 ${user_value:.2f} 隐含 {user_implied_growth*100:.1f}% 年增长率，"
+                f"略高于历史平均 {historical_growth*100:.1f}%。"
+                f"这意味着您预期公司将超越历史最佳表现，请确认这个假设的合理性。",
+                "medium",
+                True
+            )
+        else:
+            # 在合理范围内
+            if value_vs_price > 0:
+                return (
+                    "合理",
+                    f"✅ 您的估值 ${user_value:.2f} 隐含 {user_implied_growth*100:.1f}% 年增长率，"
+                    f"在历史平均 {historical_growth*100:.1f}% 的合理范围内。当前价格 ${current_price:.2f} "
+                    f"相比您的估值低 {value_vs_price:.1f}%，存在安全边际。",
+                    "low",
+                    True
+                )
+            else:
+                return (
+                    "保守",
+                    f"✅ 您的估值 ${user_value:.2f} 非常保守，隐含 {user_implied_growth*100:.1f}% 年增长率，"
+                    f"低于历史平均 {historical_growth*100:.1f}%。当前价格 ${current_price:.2f} "
+                    f"已高于您的估值 {abs(value_vs_price):.1f}%，建议等待更好价格。",
+                    "low",
+                    True
+                )
     
     def _determine_grid_tier(
         self,

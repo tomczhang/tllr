@@ -255,6 +255,139 @@ export default function CalculatorPage() {
         {/* Analysis Result */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* 0. Reverse DCF Check - 双重校验区块 */}
+            {result.reverse_dcf_check && !result.reverse_dcf_check.error_message && (
+              <div className="card-glass p-6">
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <div className="w-1.5 h-5 bg-purple-500 rounded-full"></div>
+                  反向DCF估值预检 - 双重校验
+                </h3>
+
+                {/* 第一重：市场体检 */}
+                <div className={`p-4 rounded-lg border-l-4 mb-4 ${
+                  result.reverse_dcf_check.market_status?.includes('悲观') ? 'border-l-emerald-500 bg-emerald-500/5' :
+                  result.reverse_dcf_check.market_status?.includes('高涨') || result.reverse_dcf_check.market_status?.includes('乐观') ? 'border-l-orange-500 bg-orange-500/5' :
+                  'border-l-blue-500 bg-blue-500/5'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                      result.reverse_dcf_check.market_status?.includes('悲观') ? 'bg-emerald-500/20' :
+                      result.reverse_dcf_check.market_status?.includes('高涨') || result.reverse_dcf_check.market_status?.includes('乐观') ? 'bg-orange-500/20' :
+                      'bg-blue-500/20'
+                    }`}>
+                      {result.reverse_dcf_check.market_status?.includes('悲观') ? (
+                        <Target className="w-5 h-5 text-emerald-400" />
+                      ) : result.reverse_dcf_check.market_status?.includes('高涨') || result.reverse_dcf_check.market_status?.includes('乐观') ? (
+                        <AlertTriangle className="w-5 h-5 text-orange-400" />
+                      ) : (
+                        <Info className="w-5 h-5 text-blue-400" />
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-slate-400">第一重：市场体检</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          result.reverse_dcf_check.market_status?.includes('悲观') ? 'bg-emerald-500/20 text-emerald-300' :
+                          result.reverse_dcf_check.market_status?.includes('高涨') || result.reverse_dcf_check.market_status?.includes('乐观') ? 'bg-orange-500/20 text-orange-300' :
+                          'bg-blue-500/20 text-blue-300'
+                        }`}>
+                          {result.reverse_dcf_check.market_status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-300 leading-relaxed mb-2">
+                        {result.reverse_dcf_check.market_message}
+                      </p>
+                      {result.reverse_dcf_check.current_price_implied_growth !== null && (
+                        <div className="text-xs text-slate-400">
+                          当前股价隐含增长率: <span className="font-mono font-semibold text-slate-300">{result.reverse_dcf_check.current_price_implied_growth.toFixed(1)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 第二重：用户估值风控（关键！） */}
+                <div className={`p-4 rounded-lg border-l-4 ${
+                  result.reverse_dcf_check.valuation_risk_level === 'critical' ? 'border-l-red-500 bg-red-500/10' :
+                  result.reverse_dcf_check.valuation_risk_level === 'high' ? 'border-l-orange-500 bg-orange-500/5' :
+                  result.reverse_dcf_check.valuation_risk_level === 'medium' ? 'border-l-yellow-500 bg-yellow-500/5' :
+                  'border-l-emerald-500 bg-emerald-500/5'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                      result.reverse_dcf_check.valuation_risk_level === 'critical' ? 'bg-red-500/20' :
+                      result.reverse_dcf_check.valuation_risk_level === 'high' ? 'bg-orange-500/20' :
+                      result.reverse_dcf_check.valuation_risk_level === 'medium' ? 'bg-yellow-500/20' :
+                      'bg-emerald-500/20'
+                    }`}>
+                      {result.reverse_dcf_check.valuation_risk_level === 'critical' || result.reverse_dcf_check.valuation_risk_level === 'high' ? (
+                        <AlertTriangle className={`w-5 h-5 ${
+                          result.reverse_dcf_check.valuation_risk_level === 'critical' ? 'text-red-400' : 'text-orange-400'
+                        }`} />
+                      ) : (
+                        <Target className="w-5 h-5 text-emerald-400" />
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-slate-400">第二重：用户估值风控</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          result.reverse_dcf_check.valuation_risk_level === 'critical' ? 'bg-red-500/20 text-red-300' :
+                          result.reverse_dcf_check.valuation_risk_level === 'high' ? 'bg-orange-500/20 text-orange-300' :
+                          result.reverse_dcf_check.valuation_risk_level === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {result.reverse_dcf_check.user_valuation_status}
+                        </span>
+                      </div>
+                      {result.reverse_dcf_check.user_valuation_warning && (
+                        <p className={`text-sm leading-relaxed mb-2 ${
+                          result.reverse_dcf_check.valuation_risk_level === 'critical' ? 'text-red-300 font-medium' :
+                          result.reverse_dcf_check.valuation_risk_level === 'high' ? 'text-orange-300' :
+                          result.reverse_dcf_check.valuation_risk_level === 'medium' ? 'text-yellow-300' :
+                          'text-slate-300'
+                        }`}>
+                          {result.reverse_dcf_check.user_valuation_warning}
+                        </p>
+                      )}
+                      {result.reverse_dcf_check.user_value_implied_growth !== null && (
+                        <div className="text-xs text-slate-400">
+                          您的估值隐含增长率: <span className="font-mono font-semibold text-slate-300">{result.reverse_dcf_check.user_value_implied_growth.toFixed(1)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 共享数据 */}
+                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-700/50 text-xs text-slate-400">
+                  {result.reverse_dcf_check.historical_growth_rate !== null && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-500">历史平均增长率:</span>
+                      <span className="font-mono font-semibold text-slate-300">
+                        {result.reverse_dcf_check.historical_growth_rate.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                  {result.reverse_dcf_check.eps_ttm !== null && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-500">TTM EPS:</span>
+                      <span className="font-mono font-semibold text-slate-300">
+                        ${result.reverse_dcf_check.eps_ttm.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Note */}
+                <div className="mt-3 text-xs text-slate-500">
+                  💡 双重校验机制：第一重展示市场预期（信息），第二重防止用户过度乐观（风控）。基于反向DCF模型（折现率10%，终值PE 15倍）。
+                </div>
+              </div>
+            )}
+
             {/* 1. Analysis Report */}
             <div className={`card-glass p-6 border-l-4 ${result.pricing.price_gap_percent <= 0
               ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.05)]'

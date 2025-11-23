@@ -135,10 +135,12 @@ class YahooFinancialService:
         - first_trade_date_epoch: 首次交易时间戳
         - first_trade_date_str: 首次交易日期字符串（格式：YYYY-MM-DD）
         - listing_years: 上市年限（年，保留一位小数）
+        - eps: TTM EPS（Trailing Twelve Months 每股收益）
         
         改进：
         - 优先从 quoteType 获取上市时间，如果没有再从 defaultKeyStatistics 获取
         - 使用 safe_extract 函数处理 Yahoo API 的不稳定性
+        - 新增EPS提取（用于反向DCF估值）
         """
         self._rate_limit()
         
@@ -153,7 +155,8 @@ class YahooFinancialService:
             "buyback_amount": None,
             "first_trade_date_epoch": None,
             "first_trade_date_str": None,  # 新增：IPO日期字符串
-            "listing_years": None
+            "listing_years": None,
+            "eps": None  # 新增：TTM EPS（用于反向DCF估值）
         }
         
         crumb = self._get_crumb()
@@ -238,7 +241,8 @@ class YahooFinancialService:
                 "buyback_amount": buyback if buyback > 0 else None,
                 "first_trade_date_epoch": first_trade_epoch,
                 "first_trade_date_str": first_trade_date_str,  # 新增：IPO日期字符串
-                "listing_years": listing_years
+                "listing_years": listing_years,
+                "eps": safe_extract(key_stats, "trailingEps") or safe_extract(fin_data, "trailingEps") or safe_get(key_stats.get("trailingEps"))  # 新增：TTM EPS
             }
             
         except Exception as e:
