@@ -255,8 +255,9 @@ export default function CalculatorPage() {
         {/* Analysis Result */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* 0. Reverse DCF Check - 双重校验区块 */}
-            {result.reverse_dcf_check && !result.reverse_dcf_check.error_message && (
+            {/* 0. Reverse DCF Check - 双重校验区块（仅在检测到风险时显示） */}
+            {result.reverse_dcf_check && !result.reverse_dcf_check.error_message && 
+             (result.reverse_dcf_check.valuation_risk_level === 'high' || result.reverse_dcf_check.valuation_risk_level === 'critical') && (
               <div className="card-glass p-6">
                 <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-5 bg-purple-500 rounded-full"></div>
