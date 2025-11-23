@@ -792,7 +792,7 @@ class GreedyHunterCalculatorV2:
             (档位名称, 加仓间隔比例, 档位描述)
         """
         # 白名单：稳健档 (4.0%)
-        ROBUST_WHITELIST = ["SPY", "QQQ", "VOO", "IVV", "BRK.B", "BRK.A"]
+        ROBUST_WHITELIST = ["SPY", "QQQ", "VOO", "IVV", "BRK-B", "BRK-A"]
         
         if symbol.upper() in ROBUST_WHITELIST:
             return ("稳健策略", 0.04, "宽基指数/顶级控股")
@@ -805,11 +805,11 @@ class GreedyHunterCalculatorV2:
             return ("魔鬼策略", 0.15, "小市值/高风险")
         
         # 市值 >= 2000亿，根据回撤判断
-        if abs(max_drawdown) < 0.50:  # 回撤 < 50%
+        if abs(max_drawdown) < 0.65:  # 回撤 < 65%
             # 标准档 (7.5%)
             return ("标准策略", 0.075, "大市值/低回撤")
         else:
-            # 激进档：回撤 >= 50% (10.0%)
+            # 波动档：回撤 >= 65% (10.0%)
             return ("波动策略", 0.10, "大市值/高回撤")
     
     def _generate_pyramid_strategy(
@@ -896,10 +896,10 @@ class GreedyHunterCalculatorV2:
             return "白名单股票（宽基指数或顶级控股）"
         elif tier_name == "魔鬼档":
             return f"市值{market_cap_yi:.0f}亿USD < 2000亿USD（一票否决）"
-        elif tier_name == "标准档":
-            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} < 50%"
-        else:  # 激进档
-            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} ≥ 50%"
+        elif tier_name == "标准策略":
+            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} < 65%"
+        else:  # 波动策略
+            return f"市值{market_cap_yi:.0f}亿USD > 2000亿, 最大回撤{abs(max_drawdown):.1%} ≥ 65%"
     
     def _generate_recommendation(
         self,

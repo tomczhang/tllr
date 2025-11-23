@@ -926,14 +926,14 @@ export default function CalculatorPage() {
                               <span className="text-emerald-300 font-medium">标准策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔7.5%）</span>
                             </div>
-                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&lt;50%</span>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&lt;65%</span>
                           </div>
                           <div className="flex justify-between items-start">
                             <div>
                               <span className="text-orange-300 font-medium">波动策略</span>
                               <span className="text-slate-500 text-[10px] ml-1">（间隔10%）</span>
                             </div>
-                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&gt;50%</span>
+                            <span className="text-slate-400 text-[10px] ml-2">市值&gt;2000亿 且 最大回撤&gt;65%</span>
                           </div>
                           <div className="flex justify-between items-start">
                             <div>

@@ -42,7 +42,7 @@
 ```python
 def _determine_grid_tier(symbol, market_cap, max_drawdown):
     # 白名单：稳健档
-    if symbol in ["SPY", "QQQ", "VOO", "BRK.B"]:
+    if symbol in ["SPY", "QQQ", "VOO", "BRK-B", "BRK-A"]:
         return ("稳健档", 0.04, "宽基指数/顶级控股")
     
     # 市值阈值：2000亿美元 = 2e11

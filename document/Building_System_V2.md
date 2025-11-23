@@ -84,7 +84,7 @@ $$TargetPrice = IntrinsicValue \times Q_{coeff} \times M_{coeff} \times VIX_{fac
   * **逻辑**:
     ```python
     def get_tier(ticker, cap, max_dd):
-        if ticker in ["SPY", "QQQ", "BRK-B"]:
+        if ticker in ["SPY", "QQQ", "BRK-B", "BRK-A"]:
             return "ROBUST"  # 稳健档
         if cap < 2000_000_000_000: # < 2000亿
             return "DEVIL"   # 魔鬼档 (一票否决)
