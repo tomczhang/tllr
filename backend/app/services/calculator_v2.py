@@ -25,7 +25,10 @@ from app.schemas.stock_v2 import (
     PyramidLevel,
     GridTierInfo,
     ReverseDCFCheck,
-    UserConfirmations
+    UserConfirmations,
+    BiasAnalysis,
+    BiasDataPoint,
+    BiasTierConfig
 )
 
 
@@ -143,6 +146,13 @@ class GreedyHunterCalculatorV2:
             quality_assessment.tier
         )
         
+        # 10. BIAS乖离率分析（基于档位配置）
+        bias_analysis = self._calculate_bias_analysis(
+            hist_data=hist_data,
+            current_price=current_price,
+            tier_name=grid_tier_info.tier_name
+        )
+        
         return AnalysisResultV2(
             symbol=symbol,
             stock_info=stock_info,
@@ -156,6 +166,7 @@ class GreedyHunterCalculatorV2:
             pyramid_strategy=pyramid_strategy,
             recommendation=recommendation,
             risk_warning=risk_warning,
+            bias_analysis=bias_analysis,
             analysis_timestamp=datetime.now()
         )
     
@@ -944,6 +955,159 @@ class GreedyHunterCalculatorV2:
             warnings.append("✅ 风险可控，但仍需关注市场变化")
         
         return "\n".join(warnings)
+    
+    def _get_bias_tier_config(self, tier_name: str) -> BiasTierConfig:
+        """根据档位获取BIAS阈值配置"""
+        configs = {
+            "稳健策略": BiasTierConfig(overheat=0.10, opportunity=-0.05, diamond=-0.15),
+            "标准策略": BiasTierConfig(overheat=0.15, opportunity=-0.15, diamond=-0.25),
+            "波动策略": BiasTierConfig(overheat=0.25, opportunity=-0.20, diamond=-0.35),
+            "魔鬼策略": BiasTierConfig(overheat=0.30, opportunity=-0.30, diamond=-0.50),
+        }
+        return configs.get(tier_name, configs["标准策略"])
+    
+    def _calculate_bias_analysis(
+        self,
+        hist_data: pd.DataFrame,
+        current_price: float,
+        tier_name: str
+    ) -> Optional[BiasAnalysis]:
+        """
+        计算BIAS乖离率分析
+        
+        Args:
+            hist_data: 历史价格数据（至少3年）
+            current_price: 当前价格
+            tier_name: 档位名称（用于确定阈值）
+        
+        Returns:
+            BiasAnalysis对象，如果计算失败则返回带error_message的对象
+        """
+        try:
+            if hist_data is None or len(hist_data) < 200:
+                logger.warning("历史数据不足，无法计算BIAS（需要至少200个交易日）")
+                return BiasAnalysis(
+                    tier_config=self._get_bias_tier_config(tier_name),
+                    status="INSUFFICIENT_DATA",
+                    status_display="数据不足",
+                    status_color="gray",
+                    error_message="历史数据不足，无法计算BIAS（需要至少200个交易日）"
+                )
+            
+            # 1. 计算200日均线
+            hist_data = hist_data.copy()
+            hist_data['MA_200'] = hist_data['Close'].rolling(window=200).mean()
+            
+            # 2. 计算BIAS
+            hist_data['BIAS_200'] = (hist_data['Close'] - hist_data['MA_200']) / hist_data['MA_200']
+            
+            # 3. 过滤掉前200个NaN值
+            valid_data = hist_data.dropna(subset=['BIAS_200'])
+            
+            if len(valid_data) == 0:
+                return BiasAnalysis(
+                    tier_config=self._get_bias_tier_config(tier_name),
+                    status="INSUFFICIENT_DATA",
+                    status_display="数据不足",
+                    status_color="gray",
+                    error_message="计算BIAS后无有效数据"
+                )
+            
+            # 4. 获取当前BIAS值
+            current_bias = valid_data['BIAS_200'].iloc[-1]
+            current_ma_200 = valid_data['MA_200'].iloc[-1]
+            
+            # 5. 计算历史分位（过去3年 ≈ 750个交易日）
+            recent_bias = valid_data['BIAS_200'].tail(min(750, len(valid_data)))
+            percentile_rank = (recent_bias < current_bias).sum() / len(recent_bias)
+            
+            # 6. 生成分位描述文案（注意：这是BIAS的分位，不是价格的分位）
+            if percentile_rank <= 0.05:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（极度远离年线下方）"
+            elif percentile_rank <= 0.20:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（显著低于年线）"
+            elif percentile_rank <= 0.40:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（相对年线偏低）"
+            elif percentile_rank <= 0.60:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（接近年线）"
+            elif percentile_rank <= 0.80:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（相对年线偏高）"
+            else:
+                percentile_desc = f"BIAS处于历史 {percentile_rank * 100:.0f}% 分位（显著高于年线）"
+            
+            # 7. 获取档位配置
+            tier_config = self._get_bias_tier_config(tier_name)
+            
+            # 8. 判断状态
+            if current_bias >= tier_config.overheat:
+                status = "OVERHEAT"
+                status_display = "🔴 过热区（禁止开仓）"
+                status_color = "red"
+                can_buy = False
+                warning_msg = f"⚠️ BIAS显示股价过热（+{current_bias*100:.1f}%），偏离年线过大，系统强制锁死开仓权限。"
+                suggestion_msg = None
+            elif current_bias <= tier_config.diamond:
+                status = "DIAMOND"
+                status_display = "💎 钻石底（战略解锁）"
+                status_color = "emerald"
+                can_buy = True
+                warning_msg = None
+                suggestion_msg = "⚡️ 进入极寒区，允许动用30%战略储备资金，历史级机会！"
+            elif current_bias <= tier_config.opportunity:
+                status = "OPPORTUNITY"
+                status_display = "🟢 机会区（黄金坑）"
+                status_color = "green"
+                can_buy = True
+                warning_msg = None
+                suggestion_msg = "✅ 进入击球区，允许首仓阈值下调5%，左侧布局窗口已开启。"
+            else:
+                status = "NEUTRAL"
+                status_display = "⚪ 中性区"
+                status_color = "slate"
+                can_buy = True
+                warning_msg = None
+                suggestion_msg = None
+            
+            # 9. 准备图表数据（过去3年）
+            chart_data_df = valid_data.tail(min(750, len(valid_data)))
+            chart_data = [
+                BiasDataPoint(
+                    date=row.name.strftime('%Y-%m-%d') if hasattr(row.name, 'strftime') else str(row.name),
+                    bias=float(row['BIAS_200']),
+                    price=float(row['Close']),
+                    ma_200=float(row['MA_200']) if pd.notna(row['MA_200']) else None
+                )
+                for _, row in chart_data_df.iterrows()
+            ]
+            
+            logger.info(f"📊 BIAS分析完成: 当前值={current_bias:.2%}, 分位={percentile_rank:.2%}, 状态={status}")
+            
+            return BiasAnalysis(
+                current_value=float(current_bias),
+                current_value_pct=f"{current_bias*100:+.1f}%",
+                percentile_rank=float(percentile_rank),
+                percentile_description=percentile_desc,
+                tier_config=tier_config,
+                status=status,
+                status_display=status_display,
+                status_color=status_color,
+                can_buy=can_buy,
+                warning_message=warning_msg,
+                suggestion_message=suggestion_msg,
+                chart_data=chart_data,
+                ma_200_current=float(current_ma_200),
+                error_message=None
+            )
+            
+        except Exception as e:
+            logger.error(f"BIAS计算失败: {str(e)}", exc_info=True)
+            return BiasAnalysis(
+                tier_config=self._get_bias_tier_config(tier_name),
+                status="ERROR",
+                status_display="计算失败",
+                status_color="gray",
+                error_message=f"BIAS计算失败: {str(e)}"
+            )
 
 
 # 创建全局单例

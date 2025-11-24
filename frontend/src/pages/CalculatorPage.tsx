@@ -802,6 +802,139 @@ export default function CalculatorPage() {
               </div>
             </div>
 
+            {/* BIAS 乖离率趋势仪表盘 */}
+            {result.bias_analysis && !result.bias_analysis.error_message && (
+              <div className="card-glass p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="section-title mb-0 text-base font-bold text-white">
+                    <div className="w-1.5 h-5 bg-orange-500 rounded-full mr-2"></div>
+                    BIAS乖离率趋势仪表盘
+                  </h3>
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium border ${
+                    result.bias_analysis.status_color === 'red' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                    result.bias_analysis.status_color === 'emerald' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                    result.bias_analysis.status_color === 'green' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
+                    'bg-slate-500/20 text-slate-300 border-slate-500/30'
+                  }`}>
+                    {result.bias_analysis.status_display}
+                  </span>
+                </div>
+
+                {/* 核心指标 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {/* 当前BIAS */}
+                  <div className={`p-4 rounded-lg border ${
+                    result.bias_analysis.status === 'OVERHEAT' ? 'bg-red-500/10 border-red-500/30' :
+                    result.bias_analysis.status === 'DIAMOND' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                    result.bias_analysis.status === 'OPPORTUNITY' ? 'bg-green-500/10 border-green-500/30' :
+                    'bg-slate-900/50 border-slate-700/50'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-400 uppercase tracking-wider">当前BIAS</span>
+                      <Activity className="w-4 h-4 text-orange-400" />
+                    </div>
+                    <div className={`text-2xl font-mono font-bold mb-1 ${
+                      result.bias_analysis.status === 'OVERHEAT' ? 'text-red-400' :
+                      result.bias_analysis.status === 'DIAMOND' || result.bias_analysis.status === 'OPPORTUNITY' ? 'text-emerald-400' :
+                      'text-white'
+                    }`}>
+                      {result.bias_analysis.current_value_pct}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      相对200日均线
+                    </div>
+                  </div>
+
+                  {/* 历史分位 */}
+                  <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-400 uppercase tracking-wider">历史分位</span>
+                      <TrendingDown className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div className="text-2xl font-mono font-bold text-white mb-1">
+                      {(result.bias_analysis.percentile_rank * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {result.bias_analysis.percentile_description}
+                    </div>
+                  </div>
+
+                  {/* 200日均线 */}
+                  <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-400 uppercase tracking-wider">200日均线</span>
+                      <Activity className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="text-2xl font-mono font-bold text-white mb-1">
+                      ${result.bias_analysis.ma_200_current?.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      当前价格 ${result.current_price.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 警告/建议信息 */}
+                {result.bias_analysis.warning_message && (
+                  <div className="mb-4 p-4 bg-red-500/10 border-l-4 border-l-red-500 rounded-r-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-300">
+                        {result.bias_analysis.warning_message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {result.bias_analysis.suggestion_message && (
+                  <div className="mb-4 p-4 bg-emerald-500/10 border-l-4 border-l-emerald-500 rounded-r-lg">
+                    <div className="flex items-start gap-2">
+                      <Target className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-emerald-300">
+                        {result.bias_analysis.suggestion_message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 阈值说明 */}
+                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                  <div className="text-xs font-bold text-slate-400 mb-3">当前档位阈值配置</div>
+                  <div className="grid grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-slate-500">🔴 贪婪线:</span>
+                      <span className="font-mono font-semibold text-red-400 ml-1">
+                        +{(result.bias_analysis.tier_config.overheat * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">🟢 机会线:</span>
+                      <span className="font-mono font-semibold text-green-400 ml-1">
+                        {(result.bias_analysis.tier_config.opportunity * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">💎 钻石底:</span>
+                      <span className="font-mono font-semibold text-emerald-400 ml-1">
+                        {(result.bias_analysis.tier_config.diamond * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 说明 */}
+                <div className="mt-4 p-3 bg-blue-500/5 rounded-lg border border-blue-500/10">
+                  <div className="flex items-start space-x-2">
+                    <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-slate-300">
+                      <span className="font-semibold text-blue-300">BIAS乖离率</span>是衡量当前股价偏离200日均线程度的指标，
+                      作为"市场情绪温度计"量化恐惧与贪婪。阈值根据股票档位（{result.grid_tier_info.tier_name}）动态调整。
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 4. Pricing Analysis */}
             <div className="card-glass p-6">
               <div className="flex items-center justify-between mb-6">

@@ -168,6 +168,45 @@ class StockInfoV2(BaseModel):
     currency: str = "USD"
 
 
+# ==================== BIAS 乖离率分析 ====================
+
+class BiasDataPoint(BaseModel):
+    """BIAS历史数据点"""
+    date: str = Field(..., description="日期 YYYY-MM-DD")
+    bias: float = Field(..., description="乖离率（小数形式，如-0.185表示-18.5%）")
+    price: float = Field(..., description="收盘价")
+    ma_200: Optional[float] = Field(None, description="200日均线")
+
+
+class BiasTierConfig(BaseModel):
+    """BIAS档位配置"""
+    overheat: float = Field(..., description="贪婪线阈值（正数，如0.15表示+15%）")
+    opportunity: float = Field(..., description="机会线阈值（负数，如-0.15表示-15%）")
+    diamond: float = Field(..., description="钻石底阈值（负数，如-0.25表示-25%）")
+
+
+class BiasAnalysis(BaseModel):
+    """BIAS乖离率分析结果"""
+    current_value: Optional[float] = Field(None, description="当前BIAS值（小数形式）")
+    current_value_pct: Optional[str] = Field(None, description="当前BIAS百分比显示（如'-18.5%'）")
+    percentile_rank: Optional[float] = Field(None, description="历史分位（0-1，如0.042表示处于4.2%低位）")
+    percentile_description: Optional[str] = Field(None, description="历史分位描述文案")
+    
+    tier_config: BiasTierConfig = Field(..., description="当前股票适用的阈值配置")
+    status: str = Field(..., description="状态枚举: OVERHEAT/NEUTRAL/OPPORTUNITY/DIAMOND")
+    status_display: str = Field(..., description="状态显示文本")
+    status_color: str = Field(..., description="状态颜色（用于前端）")
+    
+    can_buy: bool = Field(True, description="是否允许开仓")
+    warning_message: Optional[str] = Field(None, description="警告信息（防追高锁）")
+    suggestion_message: Optional[str] = Field(None, description="建议信息（左侧起跑枪）")
+    
+    chart_data: List[BiasDataPoint] = Field(default_factory=list, description="图表数据（过去3年）")
+    ma_200_current: Optional[float] = Field(None, description="当前200日均线值")
+    
+    error_message: Optional[str] = Field(None, description="错误信息（如果计算失败）")
+
+
 class AnalysisResultV2(BaseModel):
     """完整的分析结果（新版）"""
     symbol: str = Field(..., description="股票代码")
@@ -184,6 +223,8 @@ class AnalysisResultV2(BaseModel):
     pyramid_strategy: List[PyramidLevel] = Field(..., description="金字塔网格策略")
     recommendation: str = Field(..., description="投资建议")
     risk_warning: str = Field(..., description="风险警示")
+    
+    bias_analysis: Optional[BiasAnalysis] = Field(None, description="BIAS乖离率分析")
     
     analysis_timestamp: datetime = Field(default_factory=datetime.now, description="分析时间")
 
