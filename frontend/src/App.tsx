@@ -4,9 +4,9 @@ import { useAuthStore } from './stores/authStore'
 // Pages
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPageV2'  // 使用新版Dashboard
+import DashboardPage from './pages/DashboardPage'  // 首页：只读展示
 import CalculatorPage from './pages/CalculatorPage'
-import PortfolioPage from './pages/PortfolioPage'
+import PortfolioPage from './pages/PortfolioPage'  // 我的持仓：完整管理
 import NotesPage from './pages/NotesPage'
 
 // Layout

@@ -1,9 +1,73 @@
-import { usePortfolioOverview } from '@/hooks/usePortfolio'
-import { formatCurrency, formatPercent, getPnlColor } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Wallet, PieChart, Activity } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Shield, TrendingUp, Activity, AlertTriangle, CheckCircle, Target, BarChart3 } from 'lucide-react'
+import axios from 'axios'
+
+interface AssetScore {
+  category: string
+  category_display: string
+  target_weight: number
+  target_value: number
+  actual_value: number
+  actual_weight: number
+  score: number
+  status: string
+  status_color: string
+  gap_value: number
+  gap_weight: number
+}
+
+interface HealthReport {
+  total_value: number
+  compliance_score: number
+  grade: string
+  grade_color: string
+  grade_description: string
+  asset_scores: AssetScore[]
+  conservative_actual: number
+  conservative_target: number
+  aggressive_actual: number
+  aggressive_target: number
+  recommendations: string[]
+}
 
 export default function DashboardPage() {
-  const { data: overview, isLoading } = usePortfolioOverview()
+  const [healthReport, setHealthReport] = useState<HealthReport | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [cash, setCash] = useState(0)
+  const [holdingsCount, setHoldingsCount] = useState(0)
+
+  useEffect(() => {
+    loadAndAnalyze()
+  }, [])
+
+  const loadAndAnalyze = async () => {
+    setIsLoading(true)
+    try {
+      // 1. 加载持仓数据
+      const holdingsResponse = await axios.get('/api/v1/portfolio/holdings')
+      const holdings = holdingsResponse.data.holdings || []
+      const cashAmount = holdingsResponse.data.cash || 0
+      
+      setCash(cashAmount)
+      setHoldingsCount(holdings.length)
+
+      // 2. 如果有持仓，进行分析
+      if (holdings.length > 0 || cashAmount > 0) {
+        const analysisResponse = await axios.post('/api/v1/portfolio/health/analyze', {
+          cash: cashAmount,
+          holdings
+        })
+        setHealthReport(analysisResponse.data)
+      } else {
+        setHealthReport(null)
+      }
+    } catch (error) {
+      console.error('加载失败:', error)
+      setHealthReport(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -16,17 +80,17 @@ export default function DashboardPage() {
     )
   }
 
-  if (!overview || overview.total_positions === 0) {
+  if (!healthReport) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="max-w-md text-center">
           <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 rounded-2xl bg-slate-800/50 border border-slate-700">
-            <Wallet className="h-10 w-10 text-slate-500" />
+            <Shield className="h-10 w-10 text-slate-500" />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">还没有持仓</h3>
-          <p className="text-slate-400 text-sm">
-            前往<span className="text-emerald-400">"建仓计算器"</span>分析股票，
-            或在<span className="text-blue-400">"我的持仓"</span>添加交易记录
+          <h3 className="text-xl font-bold text-white mb-2">还没有持仓数据</h3>
+          <p className="text-slate-400 text-sm mb-4">
+            前往<span className="text-emerald-400">"我的持仓"</span>添加持仓数据，
+            系统将自动分析您的资产配置健康度
           </p>
         </div>
       </div>
@@ -36,165 +100,238 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Title */}
-      <div className="flex items-center space-x-3 mb-8">
-        <Activity className="w-6 h-6 text-emerald-400" />
-        <h2 className="text-2xl font-bold text-white">投资概览</h2>
-      </div>
-
-      {/* 总览卡片 - 暗黑玻璃风格 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* 总市值 */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6 hover:bg-slate-800 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">总市值</span>
-            <Wallet className="h-5 w-5 text-blue-400" />
-          </div>
-          <p className="text-3xl font-bold text-white font-mono mb-1">
-            {formatCurrency(overview.total_market_value)}
-          </p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            当前价值
-          </span>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-3">
+          <Shield className="w-6 h-6 text-emerald-400" />
+          <h2 className="text-2xl font-bold text-white">持仓健康度</h2>
         </div>
-
-        {/* 总成本 */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6 hover:bg-slate-800 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">总成本</span>
-            <PieChart className="h-5 w-5 text-slate-400" />
-          </div>
-          <p className="text-3xl font-bold text-white font-mono mb-1">
-            {formatCurrency(overview.total_cost)}
-          </p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-700 text-slate-300 border border-slate-600">
-            持仓成本
-          </span>
-        </div>
-
-        {/* 总盈亏 */}
-        <div className={`bg-slate-800/50 backdrop-blur-sm rounded-xl border p-6 hover:bg-slate-800 transition-all ${
-          overview.total_pnl >= 0 
-            ? 'border-emerald-500/50 shadow-glow-emerald' 
-            : 'border-red-500/50 shadow-glow-red'
-        }`}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">总盈亏</span>
-            {overview.total_pnl >= 0 ? (
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
-            ) : (
-              <TrendingDown className="h-5 w-5 text-red-400" />
-            )}
-          </div>
-          <p className={`text-3xl font-bold font-mono mb-1 ${
-            overview.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
-          }`}>
-            {formatCurrency(overview.total_pnl)}
-          </p>
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-            overview.total_pnl >= 0
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border-red-500/20'
-          }`}>
-            {overview.total_pnl >= 0 ? '盈利' : '亏损'}
-          </span>
-        </div>
-
-        {/* 收益率 */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6 hover:bg-slate-800 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">收益率</span>
-          </div>
-          <p className={`text-3xl font-bold font-mono mb-1 ${
-            overview.total_pnl_percent >= 0 ? 'text-emerald-400' : 'text-red-400'
-          }`}>
-            {formatPercent(overview.total_pnl_percent)}
-          </p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
-            年化收益
-          </span>
+        <div className="text-sm text-slate-400">
+          持仓数量: {holdingsCount} | 现金: ${cash.toLocaleString()}
         </div>
       </div>
 
-      {/* Top 持仓 - 专业数据表格 */}
-      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-700">
-          <h3 className="text-xs uppercase tracking-wider text-slate-400 font-medium flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            Top 5 持仓
-          </h3>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {overview.top_holdings.map((position, index) => (
-              <div 
-                key={position.symbol} 
-                className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 border border-slate-700/50 hover:border-slate-600 transition-all"
+      {/* 评分卡片 */}
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* 合规评分 */}
+          <div className="text-center">
+            <div className="text-sm text-slate-400 mb-3">合规评分</div>
+            <div className="text-7xl font-bold text-white font-mono mb-2">
+              {healthReport.compliance_score.toFixed(1)}
+            </div>
+            <div className="text-xs text-slate-500">满分 100</div>
+          </div>
+
+          {/* 评级 */}
+          <div className="flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-sm text-slate-400 mb-3">配置评级</div>
+              <div
+                className="inline-flex items-center justify-center w-32 h-32 rounded-2xl text-6xl font-bold border-4 mb-3"
+                style={{
+                  color: healthReport.grade_color,
+                  borderColor: healthReport.grade_color,
+                  backgroundColor: `${healthReport.grade_color}20`
+                }}
               >
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Rank */}
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 font-mono text-sm font-bold">
-                    #{index + 1}
-                  </div>
-                  
-                  {/* Stock Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-bold text-white font-mono">{position.symbol}</span>
-                      <span className="text-sm text-slate-400">{position.company_name}</span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-xs text-slate-500">
-                      <span>持仓: <span className="text-slate-300 font-mono">{position.total_quantity}</span></span>
-                      <span>成本: <span className="text-slate-300 font-mono">{formatCurrency(parseFloat(position.avg_cost))}</span></span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Market Value & PnL */}
-                <div className="text-right">
-                  <div className="font-bold text-white font-mono text-lg mb-1">
-                    {formatCurrency(position.market_value)}
-                  </div>
-                  <div className={`text-sm font-mono ${
-                    position.unrealized_pnl_percent >= 0 ? 'text-emerald-400' : 'text-red-400'
+                {healthReport.grade}
+              </div>
+              <div className="text-xs text-slate-400 max-w-xs">
+                {healthReport.grade_description}
+              </div>
+            </div>
+          </div>
+
+          {/* 总资产 */}
+          <div className="text-center">
+            <div className="text-sm text-slate-400 mb-3">总资产</div>
+            <div className="text-5xl font-bold text-white font-mono mb-2">
+              ${healthReport.total_value.toLocaleString()}
+            </div>
+            <div className="text-xs text-slate-500">USD</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 保守 vs 激进仓位 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-400" />
+              <h3 className="text-sm font-bold text-white">保守仓位</h3>
+            </div>
+            <span className="text-xs text-slate-500">目标 {healthReport.conservative_target.toFixed(0)}%</span>
+          </div>
+          <div className="flex items-end gap-3 mb-3">
+            <div className="text-4xl font-bold text-blue-400 font-mono">
+              {healthReport.conservative_actual.toFixed(1)}%
+            </div>
+            <div className={`text-sm font-mono mb-1 ${
+              Math.abs(healthReport.conservative_actual - healthReport.conservative_target) < 5
+                ? 'text-emerald-400'
+                : 'text-amber-400'
+            }`}>
+              {healthReport.conservative_actual >= healthReport.conservative_target ? '+' : ''}
+              {(healthReport.conservative_actual - healthReport.conservative_target).toFixed(1)}%
+            </div>
+          </div>
+          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-400"
+              style={{ width: `${Math.min(healthReport.conservative_actual, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-orange-400" />
+              <h3 className="text-sm font-bold text-white">激进仓位</h3>
+            </div>
+            <span className="text-xs text-slate-500">目标 {healthReport.aggressive_target.toFixed(0)}%</span>
+          </div>
+          <div className="flex items-end gap-3 mb-3">
+            <div className="text-4xl font-bold text-orange-400 font-mono">
+              {healthReport.aggressive_actual.toFixed(1)}%
+            </div>
+            <div className={`text-sm font-mono mb-1 ${
+              Math.abs(healthReport.aggressive_actual - healthReport.aggressive_target) < 5
+                ? 'text-emerald-400'
+                : 'text-amber-400'
+            }`}>
+              {healthReport.aggressive_actual >= healthReport.aggressive_target ? '+' : ''}
+              {(healthReport.aggressive_actual - healthReport.aggressive_target).toFixed(1)}%
+            </div>
+          </div>
+          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-orange-500 to-orange-400"
+              style={{ width: `${Math.min(healthReport.aggressive_actual, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 资产配置详情 */}
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
+        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-emerald-400" />
+          资产配置详情
+        </h3>
+        <div className="space-y-3">
+          {healthReport.asset_scores.map((score) => (
+            <div
+              key={score.category}
+              className={`p-4 rounded-lg border ${
+                score.status_color === 'emerald' ? 'bg-emerald-500/5 border-emerald-500/30' :
+                score.status_color === 'amber' ? 'bg-amber-500/5 border-amber-500/30' :
+                'bg-blue-500/5 border-blue-500/30'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-white">{score.category_display}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    score.status_color === 'emerald' ? 'bg-emerald-500/20 text-emerald-300' :
+                    score.status_color === 'amber' ? 'bg-amber-500/20 text-amber-300' :
+                    'bg-blue-500/20 text-blue-300'
                   }`}>
-                    {formatPercent(position.unrealized_pnl_percent)}
+                    {score.status}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-500 mb-1">得分</div>
+                  <span className="font-mono font-bold text-white text-lg">
+                    {score.score.toFixed(1)} / {score.target_weight.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+
+              {/* 进度条 */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <span>实际配置</span>
+                  <span>{score.actual_weight.toFixed(1)}%</span>
+                </div>
+                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${
+                      score.status_color === 'emerald' ? 'bg-emerald-500' :
+                      score.status_color === 'amber' ? 'bg-amber-500' :
+                      'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min((score.actual_weight / score.target_weight) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* 详细数据 */}
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div>
+                  <div className="text-slate-500 mb-1">目标金额</div>
+                  <div className="font-mono text-slate-300">
+                    ${score.target_value.toLocaleString()}
                   </div>
                 </div>
+                <div>
+                  <div className="text-slate-500 mb-1">实际金额</div>
+                  <div className="font-mono text-slate-300">
+                    ${score.actual_value.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500 mb-1">缺口</div>
+                  <div className={`font-mono ${score.gap_value > 0 ? 'text-amber-400' : score.gap_value < 0 ? 'text-blue-400' : 'text-emerald-400'}`}>
+                    {score.gap_value > 0 ? '-' : score.gap_value < 0 ? '+' : ''}${Math.abs(score.gap_value).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 调仓建议 */}
+      {healthReport.recommendations.length > 0 && (
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6">
+          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <Target className="w-4 h-4 text-emerald-400" />
+            调仓建议
+          </h3>
+          <div className="space-y-2">
+            {healthReport.recommendations.map((rec, idx) => (
+              <div
+                key={idx}
+                className={`flex items-start gap-3 p-4 rounded-lg border ${
+                  rec.includes('✅')
+                    ? 'bg-emerald-500/5 border-emerald-500/30'
+                    : 'bg-amber-500/5 border-amber-500/30'
+                }`}
+              >
+                {rec.includes('✅') ? (
+                  <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                )}
+                <span className="text-sm text-slate-300">{rec}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 市场分布 */}
-      {Object.keys(overview.sector_allocation).length > 0 && (
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700">
-            <h3 className="text-xs uppercase tracking-wider text-slate-400 font-medium flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-blue-400" />
-              市场分布
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-3">
-              {Object.entries(overview.sector_allocation).map(([market, percent]) => (
-                <div key={market} className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-700/50">
-                  <span className="text-slate-300 font-medium">{market}</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-500 to-blue-500"
-                        style={{ width: `${percent}%` }}
-                      ></div>
-                    </div>
-                    <span className="font-bold text-white font-mono w-12 text-right">{percent}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* 提示信息 */}
+      <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-slate-300">
+            <span className="font-semibold text-blue-300">提示：</span>
+            前往<span className="text-emerald-400 font-semibold">"我的持仓"</span>页面可以编辑和管理您的持仓数据
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
