@@ -4,7 +4,7 @@ import { useAuthStore } from './stores/authStore'
 // Pages
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPage'
+import DashboardPage from './pages/DashboardPageV2'  // 使用新版Dashboard
 import CalculatorPage from './pages/CalculatorPage'
 import PortfolioPage from './pages/PortfolioPage'
 import NotesPage from './pages/NotesPage'

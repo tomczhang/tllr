@@ -1,0 +1,22 @@
+{
+  "last_updated": "2025-11-25T14:25:48.717035",
+  "cash": 5000,
+  "holdings": [
+    {
+      "ticker": "SGOV",
+      "market_value": 30000,
+      "quantity": 300,
+      "avg_cost": 100,
+      "created_at": "2025-11-25T14:25:48.714511",
+      "updated_at": "2025-11-25T14:25:48.714522"
+    },
+    {
+      "ticker": "QQQ",
+      "market_value": 21000,
+      "quantity": 50,
+      "avg_cost": 420,
+      "created_at": "2025-11-25T14:25:48.715496",
+      "updated_at": "2025-11-25T14:25:48.715502"
+    }
+  ]
+}
