@@ -1070,15 +1070,34 @@ class GreedyHunterCalculatorV2:
             
             # 9. 准备图表数据（过去3年）
             chart_data_df = valid_data.tail(min(750, len(valid_data)))
-            chart_data = [
-                BiasDataPoint(
-                    date=row.name.strftime('%Y-%m-%d') if hasattr(row.name, 'strftime') else str(row.name),
+            
+            # 重置索引，确保日期列可访问
+            chart_data_df_reset = chart_data_df.reset_index()
+            
+            chart_data = []
+            for _, row in chart_data_df_reset.iterrows():
+                # 尝试从 'Date' 列或索引获取日期
+                date_value = None
+                if 'Date' in row:
+                    date_value = row['Date']
+                elif hasattr(row, 'name') and hasattr(row.name, 'strftime'):
+                    date_value = row.name
+                
+                # 格式化日期
+                if pd.notna(date_value):
+                    if hasattr(date_value, 'strftime'):
+                        date_str = date_value.strftime('%Y-%m-%d')
+                    else:
+                        date_str = str(date_value)
+                else:
+                    date_str = str(row.get('index', ''))
+                
+                chart_data.append(BiasDataPoint(
+                    date=date_str,
                     bias=float(row['BIAS_200']),
                     price=float(row['Close']),
                     ma_200=float(row['MA_200']) if pd.notna(row['MA_200']) else None
-                )
-                for _, row in chart_data_df.iterrows()
-            ]
+                ))
             
             logger.info(f"📊 BIAS分析完成: 当前值={current_bias:.2%}, 分位={percentile_rank:.2%}, 状态={status}")
             

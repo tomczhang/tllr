@@ -13,7 +13,10 @@ import NotesPage from './pages/NotesPage'
 import Layout from './components/layout/Layout'
 
 function App() {
-  const { isAuthenticated } = useAuthStore()
+  // const { isAuthenticated } = useAuthStore()
+  
+  // 🔓 临时跳过登录验证（开发模式）
+  const isAuthenticated = true
 
   return (
     <BrowserRouter>
@@ -22,7 +25,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* 受保护的路由 */}
+        {/* 受保护的路由 - 临时移除验证 */}
         <Route
           path="/"
           element={

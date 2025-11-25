@@ -6,7 +6,10 @@ import { useAuthStore } from '@/stores/authStore'
 export default function Layout() {
   const location = useLocation()
   const logout = useLogout()
-  const user = useAuthStore((state) => state.user)
+  // const user = useAuthStore((state) => state.user)
+  
+  // 🔓 临时跳过用户信息（开发模式）
+  const user = { username: '开发者', email: 'dev@test.com' }
 
   const navItems = [
     { path: '/', icon: Home, label: '首页' },

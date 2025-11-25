@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { Search, AlertTriangle, Target, BarChart3, Sparkles, RefreshCw, ArrowUpRight, Activity, TrendingDown, Info } from 'lucide-react'
 import axios from 'axios'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine } from 'recharts'
 
 // 定义类型
 interface UserConfirmations {
@@ -897,8 +898,193 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
+                {/* BIAS历史走势图 */}
+                {result.bias_analysis.chart_data && result.bias_analysis.chart_data.length > 0 && (
+                  <div className="mt-6 p-4 bg-slate-900/30 rounded-lg border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-400 mb-4 flex items-center justify-between">
+                      <span>BIAS 200日乖离率历史走势（近3年）</span>
+                      <div className="flex items-center gap-4 text-[10px]">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-0.5 bg-orange-500"></div>
+                          <span className="text-slate-500">BIAS乖离率</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-0.5 bg-cyan-500"></div>
+                          <span className="text-slate-500">股票价格</span>
+                        </div>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <LineChart data={result.bias_analysis.chart_data} margin={{ top: 10, right: 50, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        
+                        {/* 背景色带 - 贪婪区（过热） */}
+                        <ReferenceArea
+                          yAxisId="left"
+                          y1={result.bias_analysis.tier_config.overheat}
+                          y2={1}
+                          fill="#ef4444"
+                          fillOpacity={0.1}
+                          label={{ value: '🔴 禁飞区', position: 'insideTopRight', fill: '#ef4444', fontSize: 10 }}
+                        />
+                        
+                        {/* 背景色带 - 机会区 */}
+                        <ReferenceArea
+                          yAxisId="left"
+                          y1={result.bias_analysis.tier_config.diamond}
+                          y2={result.bias_analysis.tier_config.opportunity}
+                          fill="#10b981"
+                          fillOpacity={0.08}
+                          label={{ value: '🟢 机会区', position: 'insideLeft', fill: '#10b981', fontSize: 10 }}
+                        />
+                        
+                        {/* 背景色带 - 钻石底 */}
+                        <ReferenceArea
+                          yAxisId="left"
+                          y1={-1}
+                          y2={result.bias_analysis.tier_config.diamond}
+                          fill="#10b981"
+                          fillOpacity={0.15}
+                          label={{ value: '💎 钻石底', position: 'insideBottomLeft', fill: '#10b981', fontSize: 10 }}
+                        />
+                        
+                        {/* 参考线 - 贪婪线 */}
+                        <ReferenceLine
+                          yAxisId="left"
+                          y={result.bias_analysis.tier_config.overheat}
+                          stroke="#ef4444"
+                          strokeDasharray="3 3"
+                          strokeWidth={1.5}
+                        />
+                        
+                        {/* 参考线 - 机会线 */}
+                        <ReferenceLine
+                          yAxisId="left"
+                          y={result.bias_analysis.tier_config.opportunity}
+                          stroke="#10b981"
+                          strokeDasharray="3 3"
+                          strokeWidth={1.5}
+                        />
+                        
+                        {/* 参考线 - 钻石底 */}
+                        <ReferenceLine
+                          yAxisId="left"
+                          y={result.bias_analysis.tier_config.diamond}
+                          stroke="#10b981"
+                          strokeDasharray="5 5"
+                          strokeWidth={2}
+                        />
+                        
+                        {/* 参考线 - 零线 */}
+                        <ReferenceLine yAxisId="left" y={0} stroke="#64748b" strokeWidth={1} />
+                        
+                        <XAxis
+                          dataKey="date"
+                          stroke="#64748b"
+                          tick={{ fill: '#94a3b8', fontSize: 10 }}
+                          tickFormatter={(value) => {
+                            try {
+                              // 后端返回格式: "2024-01-15"
+                              if (typeof value === 'string' && value.includes('-')) {
+                                const parts = value.split('-')
+                                if (parts.length === 3) {
+                                  return `${parts[0]}/${parts[1]}`
+                                }
+                              }
+                              return String(value)
+                            } catch {
+                              return String(value)
+                            }
+                          }}
+                          type="category"
+                          scale="auto"
+                          interval="preserveStartEnd"
+                          minTickGap={80}
+                        />
+                        
+                        {/* 左侧Y轴 - BIAS */}
+                        <YAxis
+                          yAxisId="left"
+                          stroke="#64748b"
+                          tick={{ fill: '#94a3b8', fontSize: 10 }}
+                          tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+                          domain={['auto', 'auto']}
+                          label={{ value: 'BIAS', angle: -90, position: 'insideLeft', fill: '#f97316', fontSize: 11 }}
+                        />
+                        
+                        {/* 右侧Y轴 - 价格 */}
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          stroke="#64748b"
+                          tick={{ fill: '#94a3b8', fontSize: 10 }}
+                          tickFormatter={(value) => `$${value.toFixed(0)}`}
+                          domain={['auto', 'auto']}
+                          label={{ value: '价格', angle: 90, position: 'insideRight', fill: '#06b6d4', fontSize: 11 }}
+                        />
+                        
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            padding: '8px 12px'
+                          }}
+                          labelStyle={{ color: '#cbd5e1', marginBottom: '6px', fontWeight: 'bold' }}
+                          formatter={(value: any, name: string) => {
+                            if (name === 'bias') {
+                              return [`${(value * 100).toFixed(2)}%`, 'BIAS乖离率']
+                            } else if (name === 'price') {
+                              return [`$${value.toFixed(2)}`, '股票价格']
+                            }
+                            return [value, name]
+                          }}
+                          labelFormatter={(label) => {
+                            try {
+                              // 后端返回格式: "2024-01-15"
+                              const parts = label.split('-')
+                              if (parts.length === 3) {
+                                return `${parts[0]}年${parts[1]}月${parts[2]}日`
+                              }
+                              return label
+                            } catch {
+                              return label
+                            }
+                          }}
+                        />
+                        
+                        {/* BIAS线 - 左轴 */}
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="bias"
+                          name="bias"
+                          stroke="#f97316"
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4, fill: '#f97316' }}
+                        />
+                        
+                        {/* 价格线 - 右轴 */}
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="price"
+                          name="price"
+                          stroke="#06b6d4"
+                          strokeWidth={1.5}
+                          dot={false}
+                          activeDot={{ r: 3, fill: '#06b6d4' }}
+                          strokeDasharray="5 5"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
                 {/* 阈值说明 */}
-                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                <div className="mt-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
                   <div className="text-xs font-bold text-slate-400 mb-3">当前档位阈值配置</div>
                   <div className="grid grid-cols-3 gap-4 text-xs">
                     <div>
